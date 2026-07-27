@@ -504,3 +504,35 @@
 
 ### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
 - **TypeScript & Build Verification:** `pnpm build` Passed 100% (Compiled in 1.6s, 7 Static Pages Generated)
+
+---
+
+## [1.0.0-alpha.24] - 2026-07-27
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Frontend Root Route Redirection to Login Page:**
+  - ปรับปรุง [page.tsx](file:///c:/Users/phnjk/mueangsmart-back-office/frontend/src/app/page.tsx): เปลี่ยนการ Redirect หน้าแรก (`/`) ของ Frontend จาก `/dashboard` ให้เป็น `/login` เพื่อบังคับให้ผู้ใช้งานผ่านขั้นตอนการตรวจสอบสิทธิเข้าสู่ระบบก่อน
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Routing Strategy:** Next.js App Router Server Side `redirect("/login")`
+
+### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **TypeScript Typecheck:** `pnpm run typecheck` (`tsc --noEmit`) Passed 100%
+
+---
+
+## [1.0.0-alpha.25] - 2026-07-27
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Comprehensive Frontend Auth Guard & Auto-Redirect Subsystem:**
+  - **Login Page Auth Check (`login/page.tsx`):** เพิ่มการตรวจสอบ Auth State เมื่อเปิดหน้าเข้าสู่ระบบ หากผู้ใช้งานมี Token ในระบบอยู่แล้ว (`isAuthenticated = true`) ระบบจะนำทางไปยังหน้า `/dashboard` โดยอัตโนมัติ
+  - **Protected Routes Enforcer (`dashboard/page.tsx`, `cities/page.tsx`, `cities/[id]/page.tsx`):** ห่อหุ้มหน้าจอ Dashboard และ Multi-City Operations ด้วย `<ProtectedRoute>` หากตรวจไม่พบ Token หรือผู้ใช้ยังไม่ได้ล็อกอิน ระบบจะสั่ง Redirect นำทางกลับไปยังหน้า `/login` ทันที
+  - **Axios 401 Unauthorized Interceptor (`src/lib/api.ts`):** เพิ่ม Response Interceptor ตรวจสอบคำตอบ HTTP 401 จาก Backend หาก Token หมดอายุหรือไม่อนุมัติ ระบบจะทำการล้าง `localStorage` แล้วสั่ง Redirect กลับไปหน้า `/login` ทันที
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Security & Route Guard:** React 19 Client-Side Hydration Guard + Axios Response Interceptor Pattern
+
+### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **TypeScript Typecheck:** `pnpm run typecheck` (`tsc --noEmit`) Passed 100%
+
+

@@ -7,8 +7,10 @@ import { Header } from "@/components/layout/Header";
 import { Badge } from "@/components/ui/Badge";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { MetricCard } from "@/components/ui/MetricCard";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { useCities, City, ModuleStatus } from "@/hooks/useCities";
 import { useAuthStore } from "@/store/useAuthStore";
+
 import { 
   Building2, 
   ArrowLeft, 
@@ -59,9 +61,11 @@ export default function CityDetailPage({ params }: { params: Promise<{ id: strin
   }, [cityId, fetchCityByID, selectCity]);
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
-      <div className="flex-1 flex flex-col min-w-0">
+    <ProtectedRoute>
+      <div className="flex min-h-screen bg-slate-50">
+        <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+        <div className="flex-1 flex flex-col min-w-0">
+
         <Header onMenuClick={() => setMobileOpen(true)} />
 
         <main className="p-4 sm:p-8 space-y-6 sm:space-y-8 flex-1">
@@ -315,5 +319,7 @@ export default function CityDetailPage({ params }: { params: Promise<{ id: strin
         </main>
       </div>
     </div>
+    </ProtectedRoute>
   );
 }
+
