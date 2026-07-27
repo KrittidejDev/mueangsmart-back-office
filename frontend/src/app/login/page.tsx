@@ -9,11 +9,25 @@ import { useAuthStore } from "@/store/useAuthStore";
 export default function LoginPage() {
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const hasHydrated = useAuthStore((state) => state.hasHydrated);
+  const initAuth = useAuthStore((state) => state.initAuth);
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  React.useEffect(() => {
+    initAuth();
+  }, [initAuth]);
+
+  React.useEffect(() => {
+    if (hasHydrated && isAuthenticated) {
+      router.push("/dashboard");
+    }
+  }, [hasHydrated, isAuthenticated, router]);
+
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
