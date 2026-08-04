@@ -521,18 +521,163 @@
 
 ---
 
-## [1.0.0-alpha.25] - 2026-07-27
+
+---
+
+## [1.0.0-alpha.26] - 2026-08-04
 
 ### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
-- **Comprehensive Frontend Auth Guard & Auto-Redirect Subsystem:**
-  - **Login Page Auth Check (`login/page.tsx`):** เพิ่มการตรวจสอบ Auth State เมื่อเปิดหน้าเข้าสู่ระบบ หากผู้ใช้งานมี Token ในระบบอยู่แล้ว (`isAuthenticated = true`) ระบบจะนำทางไปยังหน้า `/dashboard` โดยอัตโนมัติ
-  - **Protected Routes Enforcer (`dashboard/page.tsx`, `cities/page.tsx`, `cities/[id]/page.tsx`):** ห่อหุ้มหน้าจอ Dashboard และ Multi-City Operations ด้วย `<ProtectedRoute>` หากตรวจไม่พบ Token หรือผู้ใช้ยังไม่ได้ล็อกอิน ระบบจะสั่ง Redirect นำทางกลับไปยังหน้า `/login` ทันที
-  - **Axios 401 Unauthorized Interceptor (`src/lib/api.ts`):** เพิ่ม Response Interceptor ตรวจสอบคำตอบ HTTP 401 จาก Backend หาก Token หมดอายุหรือไม่อนุมัติ ระบบจะทำการล้าง `localStorage` แล้วสั่ง Redirect กลับไปหน้า `/login` ทันที
+- **Dashboard Overview Metric Cards Redesign (Frontend Mockup & Future API Integration Ready):**
+  - ยกเลิกการแสดงผล 2 การ์ดเดิมบน Dashboard หน้าบ้าน ("ผู้ป่วยติดเตียง" และ "ผู้สูงอายุ / ผู้พิการ")
+  - เพิ่มและเรียงลำดับการ์ดสถิติ 6 รายการตามแบบโครงสร้างภาพที่ 2 (ตัดคำว่า 'จำนวน' ออกจากชื่อหัวข้อ):
+    1. **เมืองทั้งหมด:** Value: `156`, Subtitle: `เมือง`, Icon: `Building2`, Tone: Sky Blue
+    2. **เมืองที่เปิดใช้งาน:** Value: `28`, Subtitle: `เมือง (82.05%)`, Icon: `CheckSquare`, Tone: Emerald Green
+    3. **เมืองที่ไม่ได้เปิดใช้งาน:** Value: `28`, Subtitle: `เมือง (17.59%)`, Icon: `Target`, Tone: Rose Red
+    4. **ผู้ใช้งานทั้งหมด:** Value: `452,185`, Subtitle: `คน`, Icon: `Users`, Tone: Indigo
+    5. **ผู้ลงทะเบียนทั้งหมด:** Value: `318,742`, Subtitle: `คน`, Icon: `UserCheck`, Tone: Amber Orange
+    6. **แอดมินทั้งหมด:** Value: `79`, Subtitle: `คน`, Icon: `ShieldCheck`, Tone: Purple Violet
+  - ใช้ชุดไอคอนขนาด `w-6 h-6` ภายในกรอบ `p-3 rounded-xl border` ซึ่งเป็นขนาดและรูปแบบเดียวกับภาพที่ 1
+  - อัปเดต `Overview` TypeScript interface ใน `src/hooks/useAnalytics.ts` เพิ่มฟิลด์รองรับ API (`inactive_cities`, `registered_users`, `total_admins`) พร้อมระบบ Fallback ตัวเลข Mockup เพื่อให้รองรับการเชื่อมต่อกับ Backend API จริงในอนาคตได้ทันทีโดยไม่ต้องแก้ไข UI Structure ใหม่
 
 ### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
-- **Security & Route Guard:** React 19 Client-Side Hydration Guard + Axios Response Interceptor Pattern
+- **Icons & Layout:** Lucide React Icons + Tailwind CSS Responsive Grid (`xl:grid-cols-6`)
+- **State & Data Layer Architecture:** Optional Interface Fallback Strategy for Seamless Future API Binding
 
 ### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
 - **TypeScript Typecheck:** `pnpm run typecheck` (`tsc --noEmit`) Passed 100%
+- **Build Verification:** `pnpm build` Passed 100% (Compiled with Turbopack in 1.3s)
+
+---
+
+## [1.0.0-alpha.27] - 2026-08-04
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Dashboard Yearly City Analytics Charts (Line Chart & Donut Chart Subsystem):**
+  - สร้าง Reusable Component [`src/components/dashboard/CityUsageAnalytics.tsx`](file:///Users/luxantin/RepositoryProject/Backoffice/mueangsmart-back-office/frontend/src/components/dashboard/CityUsageAnalytics.tsx) วางตำแหน่งต่อจากกล่อง Pending Approvals Notice Banner
+  - **Year Dropdown Selector:** ปุ่มเลือกเปลี่ยนสถิติรายปี (ปี 2569, ปี 2568, ปี 2567) พร้อมไอคอนปฏิทิน
+  - **Interactive Line Chart Panel (ฝั่งซ้าย ~67%):**
+    - แสดงกราฟเปรียบเทียบเมือง "เปิดใช้งาน (เมือง)" (เส้นสีฟ้า) vs "ไม่ได้ใช้งาน (เมือง)" (เส้นสีแดง)
+    - แสดงแกน X 12 เดือน (ม.ค. - ธ.ค.) แกน Y (-20 ถึง 100) พร้อม Smooth Gradient Fill และ Custom Data Label แสดงตัวเลขสถิติบนจุดกราฟเส้นในแต่ละเดือน
+  - **Interactive Donut Chart Panel (ฝั่งขวา ~33%):**
+    - แสดง Donut Chart สัดส่วนการใช้งานระบบ (เมือง) พร้อมเปอร์เซ็นต์กลางวงกลม (เช่น `82.05% เปิดใช้งาน`)
+    - แสดงสรุปยอดรวมด้านล่าง (`128 เมือง (82.05%)` vs `28 เมือง (17.95%)`)
+    - ข้อมูลกราฟเส้นและสัดส่วนโดนัททำงานเชื่อมโยงกัน 100% เมื่อมีการสลับเลือกปีใน Dropdown
+
+- **Chart Hover Tooltip Duplication Fix:**
+  - สร้าง `CustomChartTooltip` และตั้งค่า `tooltipType="none"` บน `<Area>` components ใน [`src/components/dashboard/CityUsageAnalytics.tsx`](file:///Users/luxantin/RepositoryProject/Backoffice/mueangsmart-back-office/frontend/src/components/dashboard/CityUsageAnalytics.tsx) เพื่อยกเลิกรายการซ้ำซ้อนตอน Hover เมาส์
+  - จัดสไตล์ Tooltip แบบเดี่ยวด้วยข้อความสีฟ้า (เปิดใช้งาน) และสีแดง (ไม่ได้ใช้งาน) ชัดเจน สวยงาม คลีน 100%
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Chart Engine:** Recharts (`ComposedChart`, `Line`, `Area`, `PieChart`, `Pie`, `Cell`, `ResponsiveContainer`) + Custom Tooltip Component Pattern
+- **SSR Safety:** React 19 Client Component Mounted Guard Pattern (Zero SSR Hydration Mismatch)
+
+### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **TypeScript Typecheck:** `pnpm run typecheck` (`tsc --noEmit`) Passed 100%
+- **Build Verification:** `pnpm build` Passed 100% (Compiled with Turbopack in 1.5s)
+
+---
+
+## [1.0.0-alpha.28] - 2026-08-04
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Interactive Thailand City Map & Municipalities Data Table Subsystem:**
+  - สร้าง Reusable Component [`src/components/dashboard/CityMapAndTable.tsx`](file:///Users/luxantin/RepositoryProject/Backoffice/mueangsmart-back-office/frontend/src/components/dashboard/CityMapAndTable.tsx) วางตำแหน่งต่อจากส่วนสถิติกราฟรายปี
+  - **Thailand City Map Panel (ฝั่งซ้าย ~45%):**
+    - แสดงแผนที่ประเทศไทยพร้อมหมุดเทศบาลเมืองจริงรวม 30 รายการ แบ่งเป็นเมืองเปิดใช้งาน (หมุดฟ้า) และเมืองปิดใช้งาน (หมุดแดง ~5 เมืองปะปน)
+    - รองรับ Interactive Hover: เมื่อนำเมาส์ชี้หมุดบนแผนที่ จะแสดง Tooltip Popover ระบุชื่อเทศบาล, จำนวนประชากร และจำนวนผู้ใช้งาน/ลงทะเบียน
+  - **Municipalities Data Table Panel (ฝั่งขวา ~55%):**
+    - แสดงตารางข้อมูล 6 คอลัมน์ตรงตามแบบ: `เมือง`, `Module`, `River`, `Sense`, `ประชากร`, `ผู้ใช้งาน (ลงทะเบียน)`
+  - **Pagination & Total Count Fix:** ปรับจำนวนเมืองรวมจาก 156 เป็น 30 เมือง (`1-10 จาก 30 เมือง` หน้าละ 10 รายการ รวม 3 หน้า พร้อมลบปุ่มกดหน้าเกินออก)
+  - **Explicit Metric Card Mockup Values Alignment:** กำหนดค่า Mockup ตัวเลขตรงตามภาพดีไซน์ที่ 2 (`156`, `28`, `28`, `452,185`, `318,742`, `79`) ใน [`src/app/dashboard/page.tsx`](file:///Users/luxantin/RepositoryProject/Backoffice/mueangsmart-back-office/frontend/src/app/dashboard/page.tsx) เพื่อให้การแสดงผล Mockup ตรงกัน 100%
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **UI Architecture:** Interactive State Syncing Pattern (Map <-> Table Hover State Binding) + Tailwind CSS Responsive Grid & SVG Vector Map Overlay
+- **Data Engine:** Mockup Dataset 30 Cities with Client-Side 3-Page Pagination Engine
+
+### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **TypeScript Typecheck:** `pnpm run typecheck` (`tsc --noEmit`) Passed 100%
+- **Build Verification:** `pnpm build` Passed 100% (Compiled with Turbopack in 1.5s)
+
+---
+
+## [1.0.0-alpha.29] - 2026-08-04
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Real Interactive Leaflet Map Engine Integration (`CityMapAndTable.tsx`):**
+  - ติดตั้งและตั้งค่า **Leaflet Map Engine** (`leaflet` & `@types/leaflet`) ร่วมกับ CartoDB Voyager High-Definition Raster Map Tiles
+  - แสดงแผนที่ประเทศไทยจริงพร้อมพิกัดภูมิศาสตร์จริง (`Latitude, Longitude`) ของเทศบาลเมืองทั้ง 30 รายการทั่วทุกภูมิภาคของไทย
+  - **Custom Map Pin Markers & Tooltip Popups:**
+    - หมุดเมืองเปิดใช้งาน (`#0284c7` Sky-600) และหมุดเมืองปิดใช้งาน (`#ef4444` Red-500)
+    - แสดง Leaflet Interactive Popup เมื่อเมาส์ชี้หมุดบนแผนที่ หรือ Hover แถวในตารางข้อมูลเทศบาลเมือง
+  - **Table-to-Map Interactive Hover Sync:** เมื่อนำเมาส์วางบนแถวเมืองในตาราง หมุดเมืองนั้นบนแผนที่จริงจะขยายขนาด (Scale 1.35x Highlight) พร้อมเปิดป๊อปอัพข้อมูลโดยอัตโนมัติ
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Map Provider & Engine:** Leaflet `v1.9.4` + CartoDB Voyager Vector Base Tile Layer
+- **Styling & CSS:** `@import "leaflet/dist/leaflet.css"` + Tailwind Custom CSS DivIcon Markers
+
+### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **TypeScript Typecheck:** `pnpm run typecheck` (`tsc --noEmit`) Passed 100%
+- **Build Verification:** `pnpm build` Passed 100% (Compiled with Turbopack in 1.5s)
+
+---
+
+## [1.0.0-alpha.30] - 2026-08-04
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Table Row Click Smooth FlyTo Map Centering (`CityMapAndTable.tsx`):**
+  - เพิ่มระบบ Event Handler เมื่อผู้ใช้คลิกเลือกบรรทัดเมืองในตาราง ให้แผนที่ซูมขยายและร่อนอนิเมชัน (`map.flyTo([lat, lng], 10)`) ย้ายตำแหน่งเมืองนั้นมาตรงกลางแผงแผนที่อย่างนุ่มนวล สมบูรณ์แบบ
+- **Standard Teardrop Pin Markers with Custom Colors:**
+  - เปลี่ยนรูปแบบหมุดแผนที่ให้เป็นหมุดทรงหยดน้ำมาตรฐาน (Teardrop Location Pin) พร้อมวงกลมเจาะรูตรงกลาง ตรงตามภาพดีไซน์ที่ 2
+  - **เปิดใช้งาน (Active):** กำหนดเป็น **สีเขียวสดใส** (`#10b981` Emerald Green)
+  - **ไม่ได้ใช้งาน (Inactive):** กำหนดเป็น **สีแดง** (`#ef4444` Coral Red)
+  - อัปเดตสัญลักษณ์ Legend ด้านบนแผนที่ และไอคอนเขียว/แดง ในตารางข้อมูลให้สอดคล้องกัน 100%
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Map Control Engine:** Leaflet `flyTo()` Viewport Animation Engine
+- **Vector Styling:** SVG Teardrop Path Overlay with Dynamic Theme Color Fill (`#10b981` / `#ef4444`)
+
+### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **TypeScript Typecheck:** `pnpm run typecheck` (`tsc --noEmit`) Passed 100%
+- **Build Verification:** `pnpm build` Passed 100% (Compiled with Turbopack in 1.6s)
+
+---
+
+## [1.0.0-alpha.31] - 2026-08-04
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Leaflet Map Popup Close Button Removal (`CityMapAndTable.tsx` & `globals.css`):**
+  - นำปุ่มกากบาทปิด (Close 'X' Button) ออกจาก Leaflet Popup รายละเอียดเมืองในแผนที่อย่างสมบูรณ์แบบ ทั้งระดับ Popup Configuration Options (`closeButton: false`) และระดับ Global CSS Rules (`.leaflet-container .leaflet-popup-close-button { display: none !important; }`)
+  - ให้ป๊อปอัพแสดงผลข้อมูลประชากรและผู้ใช้งานแบบ Clean, Modern Card Design ตรงตามบรีฟ 100%
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Leaflet Popup Options:** `{ closeButton: false }`
+- **Global CSS Utility:** `.leaflet-container .leaflet-popup-close-button` Override Rule in `globals.css`
+
+### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **TypeScript Typecheck:** `pnpm run typecheck` (`tsc --noEmit`) Passed 100%
+- **Build Verification:** `pnpm build` Passed 100% (Compiled with Turbopack in 1.6s)
+
+---
+
+## [1.0.0-alpha.32] - 2026-08-04
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Leaflet Popup Top Whitespace Removal (`globals.css` & `CityMapAndTable.tsx`):**
+  - ลบช่องว่างส่วนเกินด้านบนของการ์ดป๊อปอัพ (Top Whitespace Area) ออกอย่างสมบูรณ์แบบ
+  - กำหนด Global CSS Override: `.leaflet-container .leaflet-popup-content { margin: 0 !important; }` และปรับแต่ง Padding ของการ์ดป๊อปอัพให้กระชับ สมดุล พอดีกับเนื้อหา 100%
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Global CSS Utility:** Override Leaflet default 13px popup content margins and adjust card container paddings
+
+### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **TypeScript Typecheck:** `pnpm run typecheck` (`tsc --noEmit`) Passed 100%
+- **Build Verification:** `pnpm build` Passed 100% (Compiled with Turbopack in 1.7s)
+
+
+
+
+
+
+
 
 

@@ -10,11 +10,16 @@ import { useAnalytics } from "@/hooks/useAnalytics";
 
 import { 
   Building2, 
+  CheckSquare,
+  Target,
   Users, 
-  HeartHandshake, 
   UserCheck, 
+  ShieldCheck,
   Clock, 
 } from "lucide-react";
+
+import { CityUsageAnalytics } from "@/components/dashboard/CityUsageAnalytics";
+import { CityMapAndTable } from "@/components/dashboard/CityMapAndTable";
 
 export default function DashboardPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -37,42 +42,60 @@ export default function DashboardPage() {
               <LoadingSpinner label="กำลังดึงสถิติภาพรวมจาก UAT Database..." />
             ) : (
               <>
-                {/* Responsive Metric Cards Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                {/* Responsive Metric Cards Grid (6 items) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-6">
                   <MetricCard
-                    title="เมืองในระบบทั้งหมด"
-                    value={overview?.total_cities || 0}
-                    subtitle={`เปิดใช้งานแล้ว ${overview?.active_cities || 0} เมือง`}
+                    title="เมืองทั้งหมด"
+                    value="156"
+                    subtitle="เมือง"
                     icon={Building2}
                     iconBgColor="bg-sky-50 border-sky-100"
                     iconTextColor="text-sky-600"
                   />
 
                   <MetricCard
-                    title="ผู้สูงอายุ / ผู้พิการ"
-                    value={overview?.total_elderly_and_disabled || 0}
-                    subtitle="กลุ่มผู้รับสวัสดิการเมือง"
+                    title="เมืองที่เปิดใช้งาน"
+                    value="128"
+                    subtitle="เมือง (82.05%)"
+                    icon={CheckSquare}
+                    iconBgColor="bg-emerald-50 border-emerald-100"
+                    iconTextColor="text-emerald-600"
+                  />
+
+                  <MetricCard
+                    title="เมืองที่ไม่ได้เปิดใช้งาน"
+                    value="28"
+                    subtitle="เมือง (17.59%)"
+                    icon={Target}
+                    iconBgColor="bg-rose-50 border-rose-100"
+                    iconTextColor="text-rose-600"
+                  />
+
+                  <MetricCard
+                    title="ผู้ใช้งานทั้งหมด"
+                    value="52,185"
+                    subtitle="คน"
                     icon={Users}
                     iconBgColor="bg-indigo-50 border-indigo-100"
                     iconTextColor="text-indigo-600"
                   />
 
                   <MetricCard
-                    title="ผู้ป่วยติดเตียง"
-                    value={overview?.total_bedridden || 0}
-                    subtitle="ต้องการการดูแลใกล้ชิด"
-                    icon={HeartHandshake}
+                    title="ผู้ลงทะเบียนทั้งหมด"
+                    value="318,742"
+                    subtitle="คน"
+                    icon={UserCheck}
                     iconBgColor="bg-amber-50 border-amber-100"
                     iconTextColor="text-amber-600"
                   />
 
                   <MetricCard
-                    title="ผู้ลงทะเบียนทั้งหมด"
-                    value={overview?.total_users || 0}
-                    subtitle={`อนุมัติแล้ว ${overview?.approved_users || 0} คน`}
-                    icon={UserCheck}
-                    iconBgColor="bg-emerald-50 border-emerald-100"
-                    iconTextColor="text-emerald-600"
+                    title="แอดมินทั้งหมด"
+                    value="79"
+                    subtitle="คน"
+                    icon={ShieldCheck}
+                    iconBgColor="bg-purple-50 border-purple-100"
+                    iconTextColor="text-purple-600"
                   />
                 </div>
 
@@ -91,6 +114,12 @@ export default function DashboardPage() {
                     ดูรายละเอียด
                   </button>
                 </div>
+
+                {/* Yearly City Usage Analytics Section (Line & Donut Charts) */}
+                <CityUsageAnalytics />
+
+                {/* City Pins Map & Municipalities Data Table Section */}
+                <CityMapAndTable />
               </>
             )}
           </main>

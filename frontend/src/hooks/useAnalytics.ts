@@ -4,12 +4,15 @@ import { api } from "@/lib/api";
 export interface Overview {
   total_cities: number;
   active_cities: number;
-  total_elderly_and_disabled: number;
-  total_bedridden: number;
+  inactive_cities?: number;
   total_users: number;
-  approved_users: number;
-  pending_users: number;
-  rejected_users: number;
+  registered_users?: number;
+  total_admins?: number;
+  total_elderly_and_disabled?: number;
+  total_bedridden?: number;
+  approved_users?: number;
+  pending_users?: number;
+  rejected_users?: number;
 }
 
 export function useAnalytics() {
