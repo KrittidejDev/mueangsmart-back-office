@@ -1,3 +1,4 @@
+@import "leaflet/dist/leaflet.css";
 @import "tailwindcss/base";
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
@@ -26,4 +27,19 @@ body {
 
 .ms-card-hover:hover {
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+}
+
+.leaflet-container .leaflet-popup-close-button {
+  display: none !important;
+}
+
+.leaflet-container .leaflet-popup-content-wrapper {
+  padding: 10px 14px !important;
+  border-radius: 16px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
+}
+
+.leaflet-container .leaflet-popup-content {
+  margin: 0 !important;
+  line-height: 1.4 !important;
 }
