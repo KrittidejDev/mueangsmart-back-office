@@ -673,11 +673,77 @@
 - **TypeScript Typecheck:** `pnpm run typecheck` (`tsc --noEmit`) Passed 100%
 - **Build Verification:** `pnpm build` Passed 100% (Compiled with Turbopack in 1.7s)
 
+---
 
+## [1.0.0-alpha.33] - 2026-08-05
 
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Multi-City Management UI Redesign (`/cities`):**
+  - ปรับแต่งดีไซน์หน้าจัดการเมือง (`src/app/cities/page.tsx`) ให้ตรงตามภาพ Mockup (Image 1) 100%:
+    - **Header & Breadcrumb:** ปรับข้อความ "จัดการเมือง (Multi-City)" คำอธิบายระบบ และ Breadcrumb "Dashboard / จัดการเมือง (Multi-City)"
+    - **5 Top Metric Cards:** ปรับการ์ดสรุป 5 ใบ (จำนวนเมืองทั้งหมด 10 เมือง, เมืองที่เปิดใช้งาน, เมืองที่ไม่ได้ใช้งาน, จำนวนผู้ใช้งานทั้งหมด, จำนวนผู้ลงทะเบียนทั้งหมด) พร้อมไอคอนและแถบสี Accent ตามดีไซน์
+    - **Table Columns & Controls:** ปรับแต่งตารางแสดงรายการเมือง (ชื่อเมือง/ที่อยู่, สถานะใช้งาน/ไม่ใช้งาน pill badge, Module, River, Sense, ผู้ใช้งาน, ผู้ลงทะเบียน, ปุ่มจัดการ "รายละเอียด & สถิติ" และ "แก้ไขเมือง")
+    - **Create City Modal:** เพิ่มปุ่ม "+ เพิ่มเมือง" และ Modal Form สำหรับการสร้างเมืองใหม่ฝั่ง Frontend State Mockup
+    - **Pagination & Footer:** เพิ่มระบบเลือกจำนวนรายการต่อหน้า (Page size), ปุ่มเปลี่ยนหน้า (Pagination controls), และนับจำนวนรายการเมืองทั้งหมด (10 รายการ)
+  - อัปเดต `src/hooks/useCities.ts` เพื่อจัดการชุดข้อมูล Mockup 10 เมือง และรองรับ `createCity` state handler
 
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Frontend Architecture:** Reusable Component Pattern + Pure React State Management (Frontend-only mockup implementation)
+- **Strict Type-Safety & Code Quality:** Type-safe City interfaces, zero explicit `any`, zero redundant comments
 
+### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **TypeScript Typecheck:** `npx tsc --noEmit` Passed 100% (0 type errors)
+---
 
+## [1.0.0-alpha.34] - 2026-08-05
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **City Modules Count & Active Users Mapping Update (`/cities`):**
+  - ปรับตั้งค่าคอลัมน์ `Module` ให้แสดงผลเป็น **8** สำหรับทุกเมืองในตารางจัดการเมือง
+  - ปรับการแสดงผลคอลัมน์ `ผู้ใช้งาน` (Active Users) ให้คำนวณและแสดงค่าจำนวนผู้ใช้งานจริงโดยไม่เป็น 0 (No zero active users display)
+  - อัปเดต `src/hooks/useCities.ts` และ `src/app/cities/page.tsx` เพื่อ Map ค่าโมดูล 8 และคำนวณผู้ใช้งานที่มีผลลัพธ์มากกว่า 0 สำหรับทุกเมืองที่ดึงจาก API หรือ Mockup
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Frontend Mapping Strategy:** Safe Data Transformation Layerใน Custom Hook & View Renderer
+---
+
+## [1.0.0-alpha.35] - 2026-08-05
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Registered Users Derived From Active Users Update (`/cities`):**
+  - ปรับการคำนวณและแสดงผลคอลัมน์ `ผู้ลงทะเบียน` (Registered Users) ให้คำนวณสอดคล้องและมาจากยอด `ผู้ใช้งาน` (Active Users) โดยตรง
+  - อัปเดต `src/hooks/useCities.ts` และ `src/app/cities/page.tsx` เพื่อปรับแต่ง `registered_users_count` และ `totalRegistered` ให้เชื่อมโยงกับยอดผู้ใช้งานอย่างสมบูรณ์
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Frontend State Calculation:** Derived State Formula (`registered = Math.round(active * 1.45)`)
+
+---
+
+## [1.0.0-alpha.36] - 2026-08-05
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **20 Municipalities Mockup Expansion & Modest User Stats Update (`/cities`):**
+  - เพิ่มรายชื่อเทศบาลจำลองเพิ่มอีก 10 เมือง รวมเป็นทั้งหมด **20 เมือง** ในชุดข้อมูล Mockup
+  - ปรับยอดผู้ใช้งาน (Active Users) และยอดผู้ลงทะเบียน (Registered Users) ของทุกเมืองให้เป็นตัวเลขขนาดพอเหมาะ (Modest realistic counts เช่น 31 ถึง 520 คน)
+  - อัปเดตการแสดงผลการ์ดสรุปสถิติ 5 ใบด้านบน (จำนวนเมืองทั้งหมด 20 เมือง, เปิดใช้งาน 18 เมือง (90%), ปิดใช้งาน 2 เมือง (10%), รวมผู้ใช้งาน 5,218 คน, รวมผู้ลงทะเบียน 7,841 คน) ให้ถูกต้องตรงกันแบบไดนามิก 100%
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Frontend State Data Expansion:** Pure React State Layer + Dynamic Metric Calculations
+
+---
+
+## [1.0.0-alpha.37] - 2026-08-05
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **River & Sense Sensors Device Count Mapping Update (`/cities`):**
+  - เปลี่ยนการแสดงผลคอลัมน์ `River` และ `Sense` จากข้อความตัวอักษรเป็นตัวเลขจำนวนอุปกรณ์ที่ติดตั้งสุ่ม/กำหนดในช่วง **2 ถึง 20** (หรือ `-` สำหรับเมืองที่ไม่มีเซนเซอร์)
+  - อัปเดต `src/hooks/useCities.ts` และ `src/app/cities/page.tsx` เพื่อรองรับการแสดงผลและปรับปรุง Modal Form สำหรับสร้าง/แก้ไขจำนวนอุปกรณ์ติดตั้ง
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Frontend Metric Transformation:** Dynamic Type Definition (`string | number`) + Sensor Device Count Mapping
+
+### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **TypeScript Typecheck:** `npx tsc --noEmit` Passed 100% (0 type errors)
 
 
 
