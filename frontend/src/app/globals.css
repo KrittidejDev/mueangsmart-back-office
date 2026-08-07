@@ -43,3 +43,7 @@ body {
   margin: 0 !important;
   line-height: 1.4 !important;
 }
+
+.leaflet-control-attribution {
+  display: none !important;
+}
