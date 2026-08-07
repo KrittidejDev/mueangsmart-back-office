@@ -742,8 +742,43 @@
 ### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
 - **Frontend Metric Transformation:** Dynamic Type Definition (`string | number`) + Sensor Device Count Mapping
 
+---
+
+## [1.0.0-alpha.38] - 2026-08-05
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **City Creation & Edit Modal Form Redesign (`CityFormModal.tsx` matching Image 2):**
+  - สร้างคอมโพเนนต์ Reusable `CityFormModal.tsx` ใน `src/components/cities/` ดีไซน์ใหม่ตรงตามภาพ Mockup (Image 2) 100%
+  - **Upload Cards:** กล่องอัปโหลดโลโก้เทศบาลและอัปโหลดตรายาง (สำหรับใบเสร็จ) ดีไซน์ขอบประพรีเมียม
+  - **Form Fields:** รองรับชื่อเทศบาล (ภาษาไทย/อังกฤษ), ที่อยู่ติดต่อ (ภาษาไทย/อังกฤษ), เบอร์ติดต่อ, สถานะเมือง (Status active/inactive dot), และพิกัดละติจูด/ลองจิจูด พร้อมพรีวิวแผนที่และช่องค้นหา
+  - **Modules Management Panel:** แผงจัดการโมดูลทั้งหมดครบทุกสัดส่วน:
+    - *โมดูลหลัก (พื้นฐาน):* ผู้ป่วยติดเตียง, ผู้สูงอายุและผู้พิการ, จ่ายภาษีออนไลน์, ยืนยันตัวตน, ประชาสัมพันธ์, ศูนย์ร้องทุกข์ร้องเรียน, ร้องทุกข์ร้องเรียน, สุขภาพสุนัขและแมว, การแจ้งเตือน (Toggle switches)
+    - *โมดูลหลัก (เลือกระบบ):* ค่าธรรมเนียมขยะ (Radio ระบบเก่า / ระบบใหม่ + Toggle switch)
+    - *โมดูลเสริม:* กล้องวงจรปิด, ข้อมูลระดับน้ำ, ฟ้าฝน (พร้อมช่อง UUID Optional)
+  - **Shared Modal Architecture:** ใช้งานร่วมกันทั้งโหมดสร้างเมืองใหม่ (`+ สร้างเมือง`) และโหมดแก้ไขเมือง (`บันทึกการเปลี่ยนแปลง`)
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Frontend Architecture:** Reusable Component Pattern + Pure React State Management + Lucide Icons System
+- **Strict Type-Safety & Code Quality:** Type-safe props & state interfaces, zero explicit `any`, zero redundant comments
+
+---
+
+## [1.0.0-alpha.39] - 2026-08-05
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Custom ToggleSwitches & Split Card Modules Redesign (`CityFormModal.tsx`):**
+  - เปลี่ยนจาก Checkbox แบบดั้งเดิมเป็น **Custom Toggle Switch (สวิตช์เปิด-ปิดสีฟ้าทรงแคปซูล)** ดีไซน์พรีเมียมตามแบบภาพ 2 100%
+  - ปรับการจัดวางการ์ดโมดูลออกเป็น 2 การ์ดย่อยซ้าย-ขวาสำหรับ `โมดูลหลัก (พื้นฐาน)` และ `โมดูลเสริม`
+  - เพิ่มช่องกรอก **UUID สำหรับโมดูลฟ้าฝน** พร้อมพรีวิวค่า Test UUID (`550e8400-e29b-41d4-a716-446655440000`) ตรงตามแบบภาพ 2
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Custom ToggleSwitch Component:** Pure Tailwind CSS Animated Switch Control
+- **Strict Code Governance:** Clean architecture, zero redundant comments, 100% type safety
+
 ### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
 - **TypeScript Typecheck:** `npx tsc --noEmit` Passed 100% (0 type errors)
+
+
 
 
 

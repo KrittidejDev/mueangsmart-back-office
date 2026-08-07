@@ -415,6 +415,7 @@ export function CityMapAndTable() {
         center: [13.2, 101.2],
         zoom: 6,
         zoomControl: true,
+        attributionControl: false,
         scrollWheelZoom: true,
       });
 

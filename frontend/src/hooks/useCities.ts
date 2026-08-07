@@ -5,6 +5,7 @@ export interface City {
   id: string;
   name_th: string;
   name_en?: string;
+  logo_url?: string;
   address_th: string;
   address_en?: string;
   phone?: string;
@@ -41,23 +42,6 @@ export interface ModuleStatus {
 }
 
 const INITIAL_MOCK_CITIES: City[] = [
-  {
-    id: "1",
-    name_th: "Citi Default",
-    name_en: "Citi Default",
-    address_th: "เขตประเวศ กรุงเทพมหานคร 10250",
-    status: "ใช้งาน",
-    modules_count: 8,
-    active_modules_count: 8,
-    river_status: 10,
-    sense_status: 15,
-    active_users_count: 120,
-    registered_users_count: 185,
-    total_users_count: 185,
-    phone: "02-123-4567",
-    latitude: 13.913,
-    longitude: 100.498,
-  },
   {
     id: "2",
     name_th: "องค์การบริหารส่วนตำบลศาลาแดง",
@@ -383,9 +367,11 @@ const INITIAL_MOCK_CITIES: City[] = [
   },
 ];
 
+let cachedCities: City[] | null = null;
+
 export function useCities() {
-  const [cities, setCities] = useState<City[]>(INITIAL_MOCK_CITIES);
-  const [loading, setLoading] = useState(false);
+  const [cities, setCities] = useState<City[]>(() => cachedCities || INITIAL_MOCK_CITIES);
+  const [loading, setLoading] = useState(() => !cachedCities);
   const [updating, setUpdating] = useState(false);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [modules, setModules] = useState<ModuleStatus[]>([]);
@@ -403,6 +389,9 @@ export function useCities() {
         INITIAL_MOCK_CITIES.forEach((item) => mergedMap.set(item.name_th, item));
 
         res.data.forEach((c: City, idx: number) => {
+          if (c.name_th?.toLowerCase().includes("default") || c.name_en?.toLowerCase().includes("default")) {
+            return;
+          }
           const mockItem = INITIAL_MOCK_CITIES[idx % INITIAL_MOCK_CITIES.length];
           const active = mockItem.active_users_count || 150;
           const registered = Math.round(active * 1.5);
@@ -420,12 +409,28 @@ export function useCities() {
           });
         });
 
-        setCities(Array.from(mergedMap.values()));
+        const list = Array.from(mergedMap.values())
+          .filter(
+            (item) => !item.name_th?.toLowerCase().includes("default") && !item.name_en?.toLowerCase().includes("default")
+          )
+          .sort((a, b) => {
+            const idA = parseInt(a.id, 10);
+            const idB = parseInt(b.id, 10);
+            if (!isNaN(idA) && !isNaN(idB)) return idA - idB;
+            return a.name_th.localeCompare(b.name_th, "th");
+          });
+
+        cachedCities = list;
+        setCities(list);
       } else {
-        setCities(INITIAL_MOCK_CITIES);
+        const fallback = INITIAL_MOCK_CITIES.filter((item) => !item.name_th?.toLowerCase().includes("default"));
+        cachedCities = fallback;
+        setCities(fallback);
       }
     } catch {
-      setCities(INITIAL_MOCK_CITIES);
+      const fallback = INITIAL_MOCK_CITIES.filter((item) => !item.name_th?.toLowerCase().includes("default"));
+      cachedCities = fallback;
+      setCities(fallback);
     } finally {
       setLoading(false);
     }
@@ -472,7 +477,11 @@ export function useCities() {
         total_users_count: registered,
         id: String(Date.now()),
       };
-      setCities((prev) => [newCity, ...prev]);
+      setCities((prev) => {
+        const updated = [newCity, ...prev];
+        cachedCities = updated;
+        return updated;
+      });
       return true;
     } catch {
       return false;
@@ -484,8 +493,8 @@ export function useCities() {
   async function updateCity(id: string, data: Partial<City>) {
     setUpdating(true);
     try {
-      setCities((prev) =>
-        prev.map((c) => {
+      setCities((prev) => {
+        const updated = prev.map((c) => {
           if (c.id !== id) return c;
           const active = data.active_users_count ?? c.active_users_count ?? 200;
           const registered = Math.round(active * 1.5);
@@ -500,8 +509,10 @@ export function useCities() {
             registered_users_count: registered,
             total_users_count: registered,
           };
-        })
-      );
+        });
+        cachedCities = updated;
+        return updated;
+      });
       return true;
     } catch {
       return false;
