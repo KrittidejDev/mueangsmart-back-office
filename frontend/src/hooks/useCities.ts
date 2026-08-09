@@ -43,7 +43,43 @@ export interface ModuleStatus {
 
 const INITIAL_MOCK_CITIES: City[] = [
   {
+    id: "1",
+    name_th: "เมืองฟ้าฝน",
+    name_en: "Fah Fon Town Municipality",
+    address_th: "9 Subdistrict ตำบล คลองนารายณ์ อำเภอเมืองจันทบุรี จันทบุรี 22000",
+    address_en: "9 Moo 14, Khlong Narai ,Mueang Chanthaburi District ,Chanthaburi ,22000 ,Thailand",
+    status: "ใช้งาน",
+    modules_count: 13,
+    active_modules_count: 12,
+    river_status: 28,
+    sense_status: 50,
+    active_users_count: 865,
+    registered_users_count: 4540,
+    total_users_count: 4540,
+    phone: "024567890",
+    latitude: 12.12356,
+    longitude: 15.32154,
+  },
+  {
     id: "2",
+    name_th: "เทศบาลตำบลพลับพลานารายณ์",
+    name_en: "Phlapphla Narai Subdistrict Municipality",
+    address_th: "9 Subdistrict ตำบล คลองนารายณ์ อำเภอเมืองจันทบุรี จันทบุรี 22000",
+    address_en: "9 Moo 14, Khlong Narai ,Mueang Chanthaburi District ,Chanthaburi ,22000 ,Thailand",
+    status: "ใช้งาน",
+    modules_count: 8,
+    active_modules_count: 8,
+    river_status: 15,
+    sense_status: 18,
+    active_users_count: 320,
+    registered_users_count: 480,
+    total_users_count: 480,
+    phone: "039-311-890",
+    latitude: 12.612,
+    longitude: 102.104,
+  },
+  {
+    id: "3",
     name_th: "องค์การบริหารส่วนตำบลศาลาแดง",
     name_en: "Sala Daeng Subdistrict SAO",
     address_th: "59 หมู่ที่ 12 ถนน หนองจอก-บ้านสร้าง ต.ศาลาแดง อ.บางน้ำเปรี้ยว จ.ฉะเชิงเทรา 24000",
@@ -60,7 +96,7 @@ const INITIAL_MOCK_CITIES: City[] = [
     longitude: 100.912,
   },
   {
-    id: "3",
+    id: "4",
     name_th: "องค์การบริหารส่วนตำบลเสม็ดใต้",
     name_en: "Samed Tai Subdistrict SAO",
     address_th: "เลขที่ 111 หมู่ที่ 4 ต.เสม็ดใต้ อ.บางคล้า จ.ฉะเชิงเทรา 24110",
@@ -75,23 +111,6 @@ const INITIAL_MOCK_CITIES: City[] = [
     phone: "038-541-111",
     latitude: 13.721,
     longitude: 101.213,
-  },
-  {
-    id: "4",
-    name_th: "เทศบาลตำบลพลับพลานารายณ์",
-    name_en: "Phlabphla Narai Subdistrict Municipality",
-    address_th: "ต.พลับพลา อ.เมืองจันทบุรี จ.จันทบุรี 22000",
-    status: "ใช้งาน",
-    modules_count: 8,
-    active_modules_count: 8,
-    river_status: 15,
-    sense_status: 18,
-    active_users_count: 320,
-    registered_users_count: 480,
-    total_users_count: 480,
-    phone: "039-311-890",
-    latitude: 12.612,
-    longitude: 102.104,
   },
   {
     id: "5",
@@ -367,10 +386,26 @@ const INITIAL_MOCK_CITIES: City[] = [
   },
 ];
 
+function sortCitiesWithFahfonFirst(list: City[]): City[] {
+  const filtered = list.filter(
+    (item) => !item.name_th?.toLowerCase().includes("default") && !item.name_en?.toLowerCase().includes("default")
+  );
+  const fahfon = filtered.find((item) => item.name_th === "เมืองฟ้าฝน" || item.id === "1");
+  const others = filtered
+    .filter((item) => item.name_th !== "เมืองฟ้าฝน" && item.id !== "1")
+    .sort((a, b) => {
+      const idA = parseInt(a.id, 10);
+      const idB = parseInt(b.id, 10);
+      if (!isNaN(idA) && !isNaN(idB)) return idB - idA;
+      return b.name_th.localeCompare(a.name_th, "th");
+    });
+  return fahfon ? [fahfon, ...others] : others;
+}
+
 let cachedCities: City[] | null = null;
 
 export function useCities() {
-  const [cities, setCities] = useState<City[]>(() => cachedCities || INITIAL_MOCK_CITIES);
+  const [cities, setCities] = useState<City[]>(() => cachedCities || sortCitiesWithFahfonFirst(INITIAL_MOCK_CITIES));
   const [loading, setLoading] = useState(() => !cachedCities);
   const [updating, setUpdating] = useState(false);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
@@ -409,26 +444,16 @@ export function useCities() {
           });
         });
 
-        const list = Array.from(mergedMap.values())
-          .filter(
-            (item) => !item.name_th?.toLowerCase().includes("default") && !item.name_en?.toLowerCase().includes("default")
-          )
-          .sort((a, b) => {
-            const idA = parseInt(a.id, 10);
-            const idB = parseInt(b.id, 10);
-            if (!isNaN(idA) && !isNaN(idB)) return idA - idB;
-            return a.name_th.localeCompare(b.name_th, "th");
-          });
-
+        const list = sortCitiesWithFahfonFirst(Array.from(mergedMap.values()));
         cachedCities = list;
         setCities(list);
       } else {
-        const fallback = INITIAL_MOCK_CITIES.filter((item) => !item.name_th?.toLowerCase().includes("default"));
+        const fallback = sortCitiesWithFahfonFirst(INITIAL_MOCK_CITIES);
         cachedCities = fallback;
         setCities(fallback);
       }
     } catch {
-      const fallback = INITIAL_MOCK_CITIES.filter((item) => !item.name_th?.toLowerCase().includes("default"));
+      const fallback = sortCitiesWithFahfonFirst(INITIAL_MOCK_CITIES);
       cachedCities = fallback;
       setCities(fallback);
     } finally {
