@@ -537,22 +537,29 @@
     5. **ผู้ลงทะเบียนทั้งหมด:** Value: `318,742`, Subtitle: `คน`, Icon: `UserCheck`, Tone: Amber Orange
     6. **แอดมินทั้งหมด:** Value: `79`, Subtitle: `คน`, Icon: `ShieldCheck`, Tone: Purple Violet
   - ใช้ชุดไอคอนขนาด `w-6 h-6` ภายในกรอบ `p-3 rounded-xl border` ซึ่งเป็นขนาดและรูปแบบเดียวกับภาพที่ 1
-  - อัปเดต `Overview` TypeScript interface ใน `src/hooks/useAnalytics.ts` เพิ่มฟิลด์รองรับ API (`inactive_cities`, `registered_users`, `total_admins`) พร้อมระบบ Fallback ตัวเลข Mockup เพื่อให้รองรับการเชื่อมต่อกับ Backend API จริงในอนาคตได้ทันทีโดยไม่ต้องแก้ไข UI Structure ใหม่
+  - อัปเดต `Overview` TypeScript interface ใน `src/hooks/useAnalytics.ts` เพิ่มฟิลด์รองรับ API (`inactive_cities`, `registered_users`, `total_admins`) พร้อมระบบ Fallback ตัวเลข Mockup เพื่อให้รองรับการเชื่อมต่อกั---
 
-### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
-- **Icons & Layout:** Lucide React Icons + Tailwind CSS Responsive Grid (`xl:grid-cols-6`)
-- **State & Data Layer Architecture:** Optional Interface Fallback Strategy for Seamless Future API Binding
-
-### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
-- **TypeScript Typecheck:** `pnpm run typecheck` (`tsc --noEmit`) Passed 100%
-- **Build Verification:** `pnpm build` Passed 100% (Compiled with Turbopack in 1.3s)
-
----
-
-## [1.0.0-alpha.27] - 2026-08-04
+## [1.0.0-alpha.40] - 2026-08-07
 
 ### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
-- **Dashboard Yearly City Analytics Charts (Line Chart & Donut Chart Subsystem):**
+- **City Detail & Statistics Page Redesign (`src/app/cities/[id]/page.tsx` matching DrawIO Mockup):**
+  - ดีไซน์หน้ารายละเอียดเมืองและสถิติการใช้งานระบบตรงตามแบบ DrawIO Mockup 100%
+  - **Top Action Bar:** แสดง Badge `UAT Environment Connected`, ปุ่มย้อนกลับไปหน้ารายการเมือง, Date Filter Selector (`1 ม.ค. 2569 - 31 ธ.ค. 2569`), และปุ่มดาวน์โหลดรายงาน (`ส่งออกรายงาน`)
+  - **City Banner Header:** แสดงตราโลโก้/สัญลักษณ์เทศบาล, ชื่อภาษาไทย/อังกฤษ, ที่อยู่ติดต่อ, เบอร์โทรศัพท์, พิกัด GPS ละติจูด/ลองจิจูด, ป้ายสถานะ `เปิดใช้งาน`, และปุ่ม `แก้ไขเมือง` (เปิด `CityFormModal`)
+  - **Top KPI Cards (3 Cards):** ผู้ลงทะเบียน (User: 4,540 คน), ผู้ใช้งาน (User Active: 865 คน / 82.05%), และผู้ดูแลระบบ (Admin: 28 คน)
+  - **โมดูลหลัก (11 Cards):** ผู้สูงอายุและผู้พิการ, ผู้ป่วยติดเตียง, ศูนย์ร้องทุกข์ร้องเรียน, ร้องทุกข์ร้องเรียน, ภาษี, สัตว์เลี้ยง, ยืนยันตัวตน, ประชาสัมพันธ์, การแจ้งเตือน, ค่าธรรมเนียมขยะ (พร้อม Badge `ระบบใหม่`), และกล้องวงจรปิด CCTV (Badge `ปิดใช้งาน`)
+  - **โมดูลเพิ่มเติม (2 Cards):** ระบบตรวจวัดระดับน้ำ (River) และระบบตรวจวัดสภาพอากาศ (Sence) พร้อมตัวเลขสถานีออนไลน์/ออฟไลน์
+  - **Mockup Interactive Functions:** ปุ่ม `แก้ไขเมือง` เชื่อมต่อกับ `CityFormModal` ใน Edit Mode พร้อม `SuccessModal` แจ้งเตือน และปุ่ม `ส่งออกรายงาน` ดาวน์โหลดไฟล์ CSV Mockup
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Frontend Architecture:** Reusable Component Integration + Next.js App Router Dynamic Page (`app/cities/[id]/page.tsx`)
+- **Theme & Styling:** Tailwind CSS Clean Enterprise Corporate Design Tokens (MueangSmart Design System)
+- **Strict Type Safety:** Pure React Hooks, 0 explicit `any`, zero redundant comments
+
+### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **TypeScript Typecheck:** `pnpm typecheck` Passed 100% (0 type errors)
+- **Next.js Production Build:** `pnpm build` Passed 100% (Compiled and generated static/dynamic routes successfully)
+ts (Line Chart & Donut Chart Subsystem):**
   - สร้าง Reusable Component [`src/components/dashboard/CityUsageAnalytics.tsx`](file:///Users/luxantin/RepositoryProject/Backoffice/mueangsmart-back-office/frontend/src/components/dashboard/CityUsageAnalytics.tsx) วางตำแหน่งต่อจากกล่อง Pending Approvals Notice Banner
   - **Year Dropdown Selector:** ปุ่มเลือกเปลี่ยนสถิติรายปี (ปี 2569, ปี 2568, ปี 2567) พร้อมไอคอนปฏิทิน
   - **Interactive Line Chart Panel (ฝั่งซ้าย ~67%):**
@@ -778,7 +785,25 @@
 ### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
 - **TypeScript Typecheck:** `npx tsc --noEmit` Passed 100% (0 type errors)
 
+---
 
+## [1.0.0-alpha.40] - 2026-08-07
 
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **City Detail & Statistics Page Redesign (`src/app/cities/[id]/page.tsx` matching DrawIO Mockup):**
+  - พัฒนาหน้ารายละเอียดเมืองและสถิติการใช้งานระบบตามแบบ DrawIO Mockup 100%
+  - **Top Action Bar:** แสดง Badge `UAT Environment Connected`, ปุ่มย้อนกลับไปหน้ารายการเมือง, Date Filter Selector (`1 ม.ค. 2569 - 31 ธ.ค. 2569`), และปุ่มดาวน์โหลดรายงาน (`ส่งออกรายงาน`)
+  - **City Banner Header:** แสดงตราโลโก้/สัญลักษณ์เทศบาล, ชื่อภาษาไทย/อังกฤษ, ที่อยู่ติดต่อ, เบอร์โทรศัพท์, พิกัด GPS ละติจูด/ลองจิจูด, ป้ายสถานะ `เปิดใช้งาน`, และปุ่ม `แก้ไขเมือง` (เปิด `CityFormModal`)
+  - **Top KPI Cards (3 Cards):** ผู้ลงทะเบียน (User: 4,540 คน), ผู้ใช้งาน (User Active: 865 คน / 82.05%), และผู้ดูแลระบบ (Admin: 28 คน)
+  - **โมดูลหลัก (11 Cards):** ผู้สูงอายุและผู้พิการ, ผู้ป่วยติดเตียง, ศูนย์ร้องทุกข์ร้องเรียน, ร้องทุกข์ร้องเรียน, ภาษี, สัตว์เลี้ยง, ยืนยันตัวตน, ประชาสัมพันธ์, การแจ้งเตือน, ค่าธรรมเนียมขยะ (พร้อม Badge `ระบบใหม่`), และกล้องวงจรปิด CCTV (Badge `ปิดใช้งาน`)
+  - **โมดูลเพิ่มเติม (2 Cards):** ระบบตรวจวัดระดับน้ำ (River) และระบบตรวจวัดสภาพอากาศ (Sence) พร้อมตัวเลขสถานีออนไลน์/ออฟไลน์
+  - **Mockup Interactive Functions:** ปุ่ม `แก้ไขเมือง` เชื่อมต่อกับ `CityFormModal` ใน Edit Mode พร้อม `SuccessModal` แจ้งเตือน และปุ่ม `ส่งออกรายงาน` ดาวน์โหลดไฟล์ CSV Mockup
 
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Frontend Architecture:** Reusable Component Integration + Next.js App Router Dynamic Page (`app/cities/[id]/page.tsx`)
+- **Theme & Styling:** Tailwind CSS Clean Enterprise Corporate Design Tokens (MueangSmart Design System)
+- **Strict Type Safety:** Pure React Hooks, 0 explicit `any`, zero redundant comments
 
+### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **TypeScript Typecheck:** `pnpm typecheck` Passed 100% (0 type errors)
+- **Next.js Production Build:** `pnpm build` Passed 100% (Compiled and generated static/dynamic routes successfully)

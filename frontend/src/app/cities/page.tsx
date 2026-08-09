@@ -25,7 +25,14 @@ import {
 function CityLogo({ logoUrl, name }: { logoUrl?: string; name: string }) {
   const [imgError, setImgError] = useState(false);
 
-  if (!logoUrl || imgError) {
+  const isValidUrl =
+    logoUrl &&
+    (logoUrl.startsWith("http://") ||
+      logoUrl.startsWith("https://") ||
+      logoUrl.startsWith("/") ||
+      logoUrl.startsWith("data:image/"));
+
+  if (!logoUrl || imgError || !isValidUrl) {
     return (
       <div className="w-9 h-9 rounded-full bg-slate-100 border border-slate-200/80 text-slate-400 flex items-center justify-center flex-shrink-0 shadow-2xs">
         <Building2 className="w-4 h-4 text-slate-400" />
@@ -174,9 +181,6 @@ export default function CitiesPage() {
                 <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
                   บริหารจัดการเมืองทั้งหมดในระบบ ข้อมูลสถิติ และตั้งค่าพื้นฐานของแต่ละเมือง
                 </p>
-              </div>
-              <div className="text-xs text-slate-400 font-medium self-start sm:self-auto">
-                Dashboard / <span className="text-slate-600">จัดการเมือง (Multi-City)</span>
               </div>
             </div>
 

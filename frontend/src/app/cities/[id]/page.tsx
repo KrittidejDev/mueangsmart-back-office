@@ -4,31 +4,86 @@ import React, { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
-import { Badge } from "@/components/ui/Badge";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { MetricCard } from "@/components/ui/MetricCard";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { useCities, City, ModuleStatus } from "@/hooks/useCities";
-import { useAuthStore } from "@/store/useAuthStore";
-
-import { 
-  Building2, 
-  ArrowLeft, 
-  MapPin, 
-  Phone, 
-  Users, 
-  UserCheck,
-  Layers, 
-  ToggleLeft, 
-  ToggleRight, 
-  ShieldAlert,
+import { CityFormModal } from "@/components/cities/CityFormModal";
+import { SuccessModal } from "@/components/ui/SuccessModal";
+import { useCities, City } from "@/hooks/useCities";
+import {
+  ArrowLeft,
+  Calendar,
+  ChevronDown,
+  Download,
+  Building2,
+  Phone,
+  Edit,
+  User,
+  Users,
+  ShieldCheck,
+  MapPin,
   CheckCircle2,
-  Landmark,
-  HeartHandshake,
-  Mail,
-  CreditCard,
-  Crown
+  XCircle,
 } from "lucide-react";
+
+interface MetricRowProps {
+  label: string;
+  value: string | number;
+  unit: string;
+  variant?: "default" | "success" | "danger";
+}
+
+function MetricRow({ label, value, unit, variant = "default" }: MetricRowProps) {
+  const valueColor =
+    variant === "success"
+      ? "text-emerald-600"
+      : variant === "danger"
+      ? "text-rose-600"
+      : "text-slate-900";
+
+  return (
+    <div className="flex items-center justify-between py-1.5 border-b border-slate-100 last:border-0 text-xs sm:text-sm">
+      <span className="text-slate-600 font-medium truncate pr-2">{label}</span>
+      <div className="flex items-center justify-end gap-1.5 flex-shrink-0">
+        <span className={`font-bold font-mono text-sm sm:text-base text-right ${valueColor}`}>
+          {typeof value === "number" ? value.toLocaleString() : value}
+        </span>
+        <span className="text-slate-500 font-normal text-xs text-right min-w-[45px]">
+          {unit}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function CityHeaderLogo({ logoUrl, name }: { logoUrl?: string; name: string }) {
+  const [imgError, setImgError] = useState(false);
+
+  const isValidUrl =
+    logoUrl &&
+    (logoUrl.startsWith("http://") ||
+      logoUrl.startsWith("https://") ||
+      logoUrl.startsWith("/") ||
+      logoUrl.startsWith("data:image/"));
+
+  if (!logoUrl || imgError || !isValidUrl) {
+    return (
+      <div className="w-16 h-16 rounded-2xl bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center font-bold text-2xl shadow-2xs flex-shrink-0">
+        <Building2 className="w-8 h-8" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-16 h-16 rounded-2xl border border-slate-200 bg-white p-1 shadow-2xs flex-shrink-0 relative overflow-hidden flex items-center justify-center">
+      <img
+        src={logoUrl}
+        alt={name}
+        onError={() => setImgError(true)}
+        className="w-full h-full object-contain rounded-xl"
+      />
+    </div>
+  );
+}
 
 export default function CityDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -36,290 +91,400 @@ export default function CityDetailPage({ params }: { params: Promise<{ id: strin
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [city, setCity] = useState<City | null>(null);
-  const currentUser = useAuthStore((state) => state.user);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [dateRange, setDateRange] = useState("1 ม.ค. 2569 - 31 ธ.ค. 2569");
 
-  const {
-    loading,
-    modules,
-    loadingModules,
-    selectCity,
-    fetchCityByID,
-    toggleModule,
-  } = useCities();
-
-  const canEditModule = currentUser?.roleName === "SuperAdmin" || currentUser?.roleName === "Admin";
+  const { loading, fetchCityByID, updateCity } = useCities();
 
   useEffect(() => {
     async function loadCityData() {
-      const cityData = await fetchCityByID(cityId);
-      if (cityData) {
-        setCity(cityData);
-        selectCity(cityData);
+      const data = await fetchCityByID(cityId);
+      if (data) {
+        setCity(data);
       }
     }
     loadCityData();
-  }, [cityId, fetchCityByID, selectCity]);
+  }, [cityId, fetchCityByID]);
+
+  const handleSaveEdit = async (updatedData: Partial<City>): Promise<boolean> => {
+    if (!city) return false;
+    const ok = await updateCity(city.id, updatedData);
+    if (ok) {
+      setCity((prev) => (prev ? { ...prev, ...updatedData } : null));
+      setEditModalOpen(false);
+      setSuccessModalOpen(true);
+      return true;
+    }
+    return false;
+  };
+
+  const handleExport = () => {
+    const filename = `${city?.name_th || "city"}_report_${dateRange.replace(/\s+/g, "_")}.csv`;
+    const dummyContent = `City,${city?.name_th}\nDate,${dateRange}\nUsers,4540\nActive,865\nAdmins,28\n`;
+    const blob = new Blob([dummyContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const nameTh = city?.name_th || "เทศบาลตำบลพลับพลานารายณ์";
+  const nameEn = city?.name_en?.trim() ? city.name_en : null;
+  const rawAddressTh = city?.address_th || "9 Subdistrict ตำบล คลองนารายณ์ อำเภอเมืองจันทบุรี จันทบุรี 22000";
+  const addressTh = rawAddressTh.startsWith("ที่อยู่:") ? rawAddressTh : `ที่อยู่: ${rawAddressTh}`;
+  const rawAddressEn = city?.address_en?.trim() ? city.address_en : null;
+  const addressEn = rawAddressEn ? (rawAddressEn.startsWith("Address:") ? rawAddressEn : `Address: ${rawAddressEn}`) : null;
+  const phone = city?.phone || "024567890";
+  const lat = city?.latitude ?? 12.12356;
+  const lng = city?.longitude ?? 15.32154;
 
   return (
     <ProtectedRoute>
       <div className="flex min-h-screen bg-slate-50">
         <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
         <div className="flex-1 flex flex-col min-w-0">
+          <Header onMenuClick={() => setMobileOpen(true)} />
 
-        <Header onMenuClick={() => setMobileOpen(true)} />
-
-        <main className="p-4 sm:p-8 space-y-6 sm:space-y-8 flex-1">
-          {/* Top Bar with Back Button */}
-          <div className="flex items-center justify-between">
-            <Link
-              href="/cities"
-              className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-sky-600 bg-white border border-slate-200 px-3.5 py-2 rounded-xl transition-all shadow-xs"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>ย้อนกลับไปหน้ารายการเมือง</span>
-            </Link>
-
-            {!canEditModule && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                <ShieldAlert className="w-3.5 h-3.5" />
-                <span>ผู้บริหาร (Read-Only Mode)</span>
-              </span>
-            )}
-          </div>
-
-          {loading || !city ? (
-            <LoadingSpinner label="กำลังดึงรายละเอียดสถิติเมือง..." />
-          ) : (
-            <>
-              {/* City Banner & Header Card */}
-              <div className="ms-card p-6 sm:p-8 rounded-2xl space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-6">
-                  <div className="flex items-center gap-5">
-                    <div className="w-16 h-16 rounded-2xl bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center font-bold text-2xl shadow-sm flex-shrink-0">
-                      <Building2 className="w-9 h-9" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">{city.name_th}</h1>
-                        <Badge variant={city.status === "Active" ? "success" : "neutral"}>{city.status}</Badge>
-                      </div>
-                      <p className="text-xs sm:text-sm text-slate-400 font-medium mt-1">{city.name_en}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 4 Stats Metric Cards: Admin Count & User Count Clearly Breakdown */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <MetricCard
-                    title="ผู้ดูแลระบบเทศบาล (Admins)"
-                    value={`${city.admins_count || 2} คน`}
-                    subtitle="เจ้าหน้าที่ผู้ดูแลระบบเมือง"
-                    icon={Crown}
-                    iconBgColor="bg-indigo-50 border-indigo-100"
-                    iconTextColor="text-indigo-600"
-                  />
-
-                  <MetricCard
-                    title="ประชาชนผู้ใช้งาน (Users)"
-                    value={`${city.total_users_count || 0} คน`}
-                    subtitle="ประชาชนที่ลงทะเบียนแอป"
-                    icon={Users}
-                    iconBgColor="bg-sky-50 border-sky-100"
-                    iconTextColor="text-sky-600"
-                  />
-
-                  <MetricCard
-                    title="กลุ่มเปราะบางรวม"
-                    value={`${city.vulnerable_count || 0} คน`}
-                    subtitle="ผู้สูงอายุ ผู้พิการ ผู้ป่วย"
-                    icon={HeartHandshake}
-                    iconBgColor="bg-rose-50 border-rose-100"
-                    iconTextColor="text-rose-600"
-                  />
-
-                  <MetricCard
-                    title="โมดูลที่เปิดใช้งาน"
-                    value={`${city.active_modules_count} โมดูล`}
-                    subtitle="บริการดิจิทัลเทศบาล"
-                    icon={Layers}
-                    iconBgColor="bg-emerald-50 border-emerald-100"
-                    iconTextColor="text-emerald-600"
-                  />
-                </div>
+          <main className="p-4 sm:p-6 md:p-8 space-y-6 flex-1 max-w-7xl mx-auto w-full">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <Link
+                  href="/cities"
+                  className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 hover:text-sky-600 bg-white border border-slate-200 px-3.5 py-2 rounded-xl transition-all shadow-2xs hover:border-sky-300"
+                >
+                  <ArrowLeft className="w-4 h-4 text-slate-500" />
+                  <span>ย้อนกลับไปหน้าการแสดงเมือง</span>
+                </Link>
               </div>
 
-              {/* Information Grid Section (2 Columns: Left = Municipality & Admin, Right = Bank) */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Left Card: General & Admin Info */}
-                <div className="ms-card p-6 rounded-2xl space-y-6">
-                  <div>
-                    <h2 className="text-base font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-3">
-                      <Landmark className="w-5 h-5 text-sky-600" />
-                      <span>ข้อมูลทั่วไป & ผู้ดูแลระบบเทศบาล</span>
-                    </h2>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative inline-flex items-center">
+                  <div className="inline-flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-2xs">
+                    <Calendar className="w-4 h-4 text-slate-400" />
+                    <span>{dateRange}</span>
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-1" />
                   </div>
+                </div>
 
-                  <div className="space-y-4 text-xs">
-                    <div>
-                      <span className="text-slate-400 font-medium block mb-1">ที่อยู่เทศบาล:</span>
-                      <p className="text-slate-700 font-semibold flex items-start gap-2">
-                        <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
-                        <span>{city.address_th || "ไม่ระบุข้อมูลที่อยู่"}</span>
-                      </p>
-                    </div>
+                <button
+                  onClick={handleExport}
+                  className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white rounded-xl px-4 py-2 text-xs font-bold shadow-sm transition-all cursor-pointer"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>ส่งออกรายงาน</span>
+                </button>
+              </div>
+            </div>
 
-                    <div className="grid grid-cols-2 gap-4 pt-2">
-                      <div>
-                        <span className="text-slate-400 font-medium block mb-1">เบอร์โทรศัพท์:</span>
-                        <p className="text-slate-700 font-semibold flex items-center gap-1.5">
-                          <Phone className="w-4 h-4 text-slate-400" />
-                          <span>{city.phone || "ไม่ระบุ"}</span>
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 font-medium block mb-1">พิกัด GPS:</span>
-                        <p className="text-slate-700 font-mono font-semibold">
-                          {city.latitude}, {city.longitude}
-                        </p>
-                      </div>
-                    </div>
+            {loading && !city ? (
+              <LoadingSpinner label="กำลังดึงรายละเอียดสถิติเมือง..." />
+            ) : (
+              <>
+                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-2xs space-y-4">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                    <div className="flex items-start gap-4">
+                      <CityHeaderLogo logoUrl={city?.logo_url} name={nameTh} />
 
-                    <div className="pt-4 border-t border-slate-100 space-y-3">
-                      <span className="text-slate-400 font-medium block">
-                        เจ้าหน้าที่ผู้ดูแลระบบเทศบาล (Local Admins): {city.admins_count || 2} คน
-                      </span>
-                      <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2">
-                        <div className="flex items-center gap-2 text-slate-800 font-bold text-xs">
-                          <UserCheck className="w-4 h-4 text-indigo-600" />
-                          <span>{city.admin_name} {city.admin_last_name} (หัวหน้าผู้ดูแลระบบ)</span>
-                        </div>
-                        <div className="flex items-center gap-4 text-slate-600 text-[11px] pt-1">
+                      <div className="space-y-1 min-w-0">
+                        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                          {nameTh}
+                        </h1>
+                        {nameEn && (
+                          <p className="text-xs sm:text-sm text-slate-500 font-medium">{nameEn}</p>
+                        )}
+                        {addressTh && (
+                          <p className="text-xs font-semibold text-slate-900 pt-0.5">{addressTh}</p>
+                        )}
+                        {addressEn && (
+                          <p className="text-slate-400 font-normal text-[11px] sm:text-xs">{addressEn}</p>
+                        )}
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-0.5 text-xs text-slate-600">
                           <span className="flex items-center gap-1">
-                            <Mail className="w-3.5 h-3.5 text-slate-400" />
-                            {city.admin_email}
-                          </span>
-                          <span className="flex items-center gap-1">
+                            <span>เบอร์โทรศัพท์:</span>
                             <Phone className="w-3.5 h-3.5 text-slate-400" />
-                            {city.admin_phone}
+                            <span className="font-bold text-slate-900">{phone}</span>
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <span>พิกัด :</span>
+                            <a
+                              href={`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="font-semibold text-sky-600 hover:underline inline-flex items-center gap-1"
+                            >
+                              <span>{lat} , {lng}</span>
+                              <MapPin className="w-3.5 h-3.5 text-sky-500" />
+                            </a>
                           </span>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </div>
 
-                {/* Right Card: Bank Account Details */}
-                <div className="ms-card p-6 rounded-2xl space-y-6">
-                  <div>
-                    <h2 className="text-base font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-3">
-                      <CreditCard className="w-5 h-5 text-emerald-600" />
-                      <span>รายละเอียดบัญชีธนาคารเทศบาล (รับเงินอุดหนุน)</span>
-                    </h2>
-                  </div>
+                    <div className="flex items-center gap-3 self-start lg:self-center">
+                      <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                        เปิดใช้งาน
+                      </span>
 
-                  <div className="space-y-4 text-xs">
-                    <div>
-                      <span className="text-slate-400 font-medium block mb-1">ชื่อบัญชีธนาคาร:</span>
-                      <p className="text-slate-800 font-bold text-sm">{city.bank_account_name}</p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <span className="text-slate-400 font-medium block mb-1">ธนาคาร:</span>
-                        <p className="text-slate-700 font-semibold">{city.bank_name}</p>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 font-medium block mb-1">ประเภทบัญชี:</span>
-                        <p className="text-slate-700 font-semibold">{city.bank_type}</p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <span className="text-slate-400 font-medium block mb-1">เลขที่บัญชี:</span>
-                        <p className="text-emerald-700 font-mono font-bold text-sm bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100 inline-block">
-                          {city.bank_account_number}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 font-medium block mb-1">สาขา:</span>
-                        <p className="text-slate-700 font-semibold">{city.bank_branch}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Module Usage Analytics Grid (All Modules with Toggles) */}
-              <div className="ms-card p-6 rounded-2xl space-y-6">
-                <div>
-                  <h2 className="text-lg font-bold text-slate-800">สถิติการใช้งานและสวิตช์ควบคุมโมดูล (Module Management Console)</h2>
-                  <p className="text-xs text-slate-500 mt-0.5">รายการโมดูลบริการดิจิทัลทั้งหมดของเทศบาล {city.name_th}</p>
-                </div>
-
-                {loadingModules ? (
-                  <LoadingSpinner label="กำลังโหลดสถานะโมดูล..." />
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {modules.map((m: ModuleStatus) => (
-                      <div
-                        key={m.module_id}
-                        className={`p-5 rounded-2xl border transition-all ${
-                          m.is_active
-                            ? "bg-white border-slate-200 shadow-xs"
-                            : "bg-slate-50 border-slate-200 opacity-60"
-                        }`}
+                      <button
+                        onClick={() => setEditModalOpen(true)}
+                        className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white rounded-xl px-4 py-2 text-xs font-bold shadow-2xs transition-all cursor-pointer"
                       >
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <span className="inline-block px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 text-slate-600 border border-slate-200 mb-2">
-                              {m.code}
-                            </span>
-                            <h3 className="text-sm font-bold text-slate-800">{m.name_th}</h3>
-                            <p className="text-xs text-slate-400 mt-1 line-clamp-2">{m.description || m.name_en}</p>
-                          </div>
+                        <Edit className="w-4 h-4" />
+                        <span>แก้ไขเมือง</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
 
-                          {canEditModule ? (
-                            <button
-                              onClick={() => toggleModule(city.id, m.module_id, m.is_active)}
-                              className="text-slate-400 hover:text-slate-700 transition-all cursor-pointer"
-                            >
-                              {m.is_active ? (
-                                <ToggleRight className="w-8 h-8 text-sky-600" />
-                              ) : (
-                                <ToggleLeft className="w-8 h-8 text-slate-300" />
-                              )}
-                            </button>
-                          ) : (
-                            <div className="text-xs font-semibold">
-                              {m.is_active ? (
-                                <span className="text-emerald-600 flex items-center gap-1">
-                                  <CheckCircle2 className="w-4 h-4" /> เปิด
-                                </span>
-                              ) : (
-                                <span className="text-slate-400">ปิด</span>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-semibold text-slate-500 block">ผู้ลงทะเบียน (User)</span>
+                      <div className="flex items-baseline gap-1.5 mt-1">
+                        <span className="text-2xl sm:text-3xl font-bold font-mono text-slate-900">4,540</span>
+                        <span className="text-xs text-slate-500 font-medium">คน</span>
+                      </div>
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center">
+                      <User className="w-6 h-6" />
+                    </div>
+                  </div>
 
-                        <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                          <span className="text-slate-400">สถานะบริการ</span>
-                          <Badge variant={m.is_active ? "success" : "neutral"}>
-                            {m.is_active ? "พร้อมใช้งาน" : "ปิดบริการ"}
-                          </Badge>
+                  <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-semibold text-slate-500 block">ผู้ใช้งาน (User Active)</span>
+                      <div className="flex items-baseline gap-1.5 mt-1">
+                        <span className="text-2xl sm:text-3xl font-bold font-mono text-slate-900">865</span>
+                        <span className="text-xs text-slate-500 font-medium">คน (82.05%)</span>
+                      </div>
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center">
+                      <Users className="w-6 h-6" />
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-semibold text-slate-500 block">ผู้ดูแลระบบ (Admin)</span>
+                      <div className="flex items-baseline gap-1.5 mt-1">
+                        <span className="text-2xl sm:text-3xl font-bold font-mono text-slate-900">28</span>
+                        <span className="text-xs text-slate-500 font-medium">คน</span>
+                      </div>
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl bg-purple-50 border border-purple-100 text-purple-600 flex items-center justify-center">
+                      <ShieldCheck className="w-6 h-6" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h2 className="text-lg font-bold text-slate-900 tracking-tight">โมดูลหลัก</h2>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-start space-y-3">
+                      <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                        <h3 className="text-sm font-bold text-slate-900">ผู้สูงอายุและผู้พิการ</h3>
+                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          ใช้งาน
+                        </span>
+                      </div>
+                      <div className="pt-1">
+                        <MetricRow label="รายชื่อทั้งหมด" value={125} unit="คน" />
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-start space-y-3">
+                      <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                        <h3 className="text-sm font-bold text-slate-900">ผู้ป่วยติดเตียง</h3>
+                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          ใช้งาน
+                        </span>
+                      </div>
+                      <div className="pt-1">
+                        <MetricRow label="รายชื่อทั้งหมด" value={55} unit="คน" />
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-start space-y-3">
+                      <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                        <h3 className="text-sm font-bold text-slate-900">ศูนย์ร้องทุกข์ร้องเรียน</h3>
+                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          ใช้งาน
+                        </span>
+                      </div>
+                      <div className="pt-1">
+                        <MetricRow label="เรื่องร้องเรียนทั่วไปทั้งหมด" value={8} unit="เรื่อง" />
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-start space-y-3">
+                      <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                        <h3 className="text-sm font-bold text-slate-900">ร้องทุกข์ร้องเรียน</h3>
+                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          ใช้งาน
+                        </span>
+                      </div>
+                      <div className="pt-1">
+                        <MetricRow label="เรื่องร้องเรียนทุกกองทั้งหมด" value={205} unit="เรื่อง" />
+                        <MetricRow label="ดำเนินการเสร็จสิ้น" value={200} unit="เรื่อง" />
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-start space-y-3">
+                      <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                        <h3 className="text-sm font-bold text-slate-900">ภาษี</h3>
+                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          ใช้งาน
+                        </span>
+                      </div>
+                      <div className="pt-1">
+                        <MetricRow label="ภาษีที่ดินและสิ่งปลูกสร้าง" value={15} unit="รายการ" />
+                        <MetricRow label="ภาษีป้าย" value={9} unit="รายการ" />
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-start space-y-3">
+                      <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                        <h3 className="text-sm font-bold text-slate-900">สัตว์เลี้ยง</h3>
+                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          ใช้งาน
+                        </span>
+                      </div>
+                      <div className="pt-1">
+                        <MetricRow label="สุนัข" value={46} unit="ตัว" />
+                        <MetricRow label="แมว" value={61} unit="ตัว" />
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-start space-y-3">
+                      <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                        <h3 className="text-sm font-bold text-slate-900">ยืนยันตัวตน</h3>
+                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          ใช้งาน
+                        </span>
+                      </div>
+                      <div className="pt-1">
+                        <MetricRow label="รายชื่อทั้งหมด" value="4,532" unit="คน" />
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-start space-y-3">
+                      <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                        <h3 className="text-sm font-bold text-slate-900">ประชาสัมพันธ์</h3>
+                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          ใช้งาน
+                        </span>
+                      </div>
+                      <div className="pt-1">
+                        <MetricRow label="ข่าวประชาสัมพันธ์ทั้งหมด" value={22} unit="รายการ" />
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-start space-y-3">
+                      <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                        <h3 className="text-sm font-bold text-slate-900">การแจ้งเตือน</h3>
+                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          ใช้งาน
+                        </span>
+                      </div>
+                      <div className="pt-1">
+                        <MetricRow label="รวมทุกโมดูลทั้งหมด" value={765} unit="ครั้ง" />
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-start space-y-3">
+                      <div className="flex items-center justify-between flex-wrap gap-2 pb-2.5 border-b border-slate-100">
+                        <h3 className="text-sm font-bold text-slate-900">ค่าธรรมเนียมขยะ</h3>
+                        <div className="flex items-center gap-1.5">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-700 border border-sky-200">
+                            ระบบใหม่
+                          </span>
+                          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            ใช้งาน
+                          </span>
                         </div>
                       </div>
-                    ))}
+                      <div className="pt-1">
+                        <MetricRow label="รายชื่อทั้งหมด" value="2,765" unit="รายชื่อ" />
+                        <MetricRow label="จำนวนบิลทั้งหมด" value="4,321" unit="รายการ" />
+                        <MetricRow label="รอชำระทั้งหมด" value={300} unit="รายการ" />
+                        <MetricRow label="ชำระแล้วทั้งหมด" value="4,021" unit="รายการ" />
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-start space-y-3">
+                      <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                        <h3 className="text-sm font-bold text-slate-900">กล้องวงจรปิด CCTV</h3>
+                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-600 border border-rose-200">
+                          ปิดใช้งาน
+                        </span>
+                      </div>
+                      <div className="pt-1">
+                        <MetricRow label="จำนวนกล้อง CCTV" value={0} unit="เครื่อง" />
+                        <MetricRow label="การเข้ารับชม" value={0} unit="ครั้ง" />
+                      </div>
+                    </div>
                   </div>
-                )}
-              </div>
-            </>
-          )}
-        </main>
+                </div>
+
+                <div className="pt-4 border-t border-slate-200 space-y-4">
+                  <h2 className="text-lg font-bold text-slate-900 tracking-tight">โมดูลเพิ่มเติม</h2>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-start space-y-3">
+                      <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                        <h3 className="text-sm font-bold text-slate-900">ระบบตรวจวัดระดับน้ำ (River)</h3>
+                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          ใช้งาน
+                        </span>
+                      </div>
+                      <div className="pt-1">
+                        <MetricRow label="สถานีตรวจวัดทั้งหมด" value={28} unit="สถานี" />
+                        <MetricRow label="ออนไลน์" value={25} unit="สถานี" variant="success" />
+                        <MetricRow label="ออฟไลน์" value={3} unit="สถานี" variant="danger" />
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-start space-y-3">
+                      <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                        <h3 className="text-sm font-bold text-slate-900">ระบบตรวจวัดสภาพอากาศ (Sence)</h3>
+                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          ใช้งาน
+                        </span>
+                      </div>
+                      <div className="pt-1">
+                        <MetricRow label="สถานีตรวจวัดทั้งหมด" value={50} unit="สถานี" />
+                        <MetricRow label="ออนไลน์" value={49} unit="สถานี" variant="success" />
+                        <MetricRow label="ออฟไลน์" value={1} unit="สถานี" variant="danger" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </main>
+        </div>
+
+        <CityFormModal
+          isOpen={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          mode="edit"
+          cityData={city}
+          onSave={handleSaveEdit}
+        />
+
+        <SuccessModal
+          isOpen={successModalOpen}
+          onClose={() => setSuccessModalOpen(false)}
+          title="บันทึกข้อมูลเมืองสำเร็จ"
+          description={`ระบบได้ทำการปรับปรุงข้อมูล ${city?.name_th || "เทศบาล"} เรียบร้อยแล้ว`}
+        />
       </div>
-    </div>
     </ProtectedRoute>
   );
 }
-
