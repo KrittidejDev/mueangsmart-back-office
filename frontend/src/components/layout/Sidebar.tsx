@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { 
   Building2, 
   LayoutDashboard, 
+  LayoutGrid,
   Layers, 
   PieChart, 
   ShieldCheck, 
@@ -26,6 +27,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { name: "ภาพรวมสถิติ (Dashboard)", href: "/dashboard", icon: LayoutDashboard },
   { name: "จัดการเมือง (Multi-City)", href: "/cities", icon: Building2 },
+  { name: "จัดการโมดูล (Module)", href: "/modules", icon: LayoutGrid },
   { name: "การวิเคราะห์กลุ่มเปราะบาง", href: "/analytics/vulnerable", icon: PieChart },
   { name: "ระบบเพิ่มเมือง (Onboarding)", href: "/cities/onboarding", icon: Layers, superAdminOnly: true },
   { name: "ผู้ดูแลระบบ SuperAdmin", href: "/super-admins", icon: ShieldCheck, superAdminOnly: true },

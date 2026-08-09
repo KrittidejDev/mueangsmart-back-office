@@ -807,3 +807,33 @@ ts (Line Chart & Donut Chart Subsystem):**
 ### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
 - **TypeScript Typecheck:** `pnpm typecheck` Passed 100% (0 type errors)
 - **Next.js Production Build:** `pnpm build` Passed 100% (Compiled and generated static/dynamic routes successfully)
+
+---
+
+## [1.0.0-alpha.41] - 2026-08-09
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Module Management Page & Navigation Subsystem (`src/app/modules/page.tsx` matching Image 1 Design):**
+  - เพิ่มเมนู `จัดการโมดูล (Module)` บน Sidebar เส้นทาง `/modules` ด้วยไอคอน `LayoutGrid` วางตำแหน่งต่อจาก `จัดการเมือง (Multi-City)` ให้กลมกลืนตามสไตล์ MueangSmart Design System
+  - **Type Safety & Custom Hook Architecture:**
+    - สร้าง `src/types/module.ts` กำหนด Interface `SystemModule` ปราศจาก `any` 100%
+    - สร้าง `src/hooks/useModules.ts` จัดเก็บ Mock Data โมดูลครบถ้วนทั้ง 14 รายการ ถอดแบบจากดีไซน์ (ภาพที่ 1) 100%
+  - **Data Table & Fixed Column Widths:**
+    - ดีไซน์ตารางข้อมูลด้วย `table-fixed` กำหนดความกว้างคอลัมน์คงที่ (10 คอลัมน์โดยนำคอลัมน์ `ลำดับ` ออกเพื่อใช้คอลัมน์ `เรียงลำดับ (Sidebar)` เป็นหลักแทน) และกำหนดความสูงแถวคงที่เท่ากันทุกบรรทัด `h-[48px]` (`py-2` ร่วมกับปุ่มจัดการ `h-8`) พร้อมระบบเติมบรรทัดว่างอัตโนมัติ (Placeholder Rows) ให้ความสูงรวมคงที่ 10 แถวเสมอ ป้องกันแถบ Pagination ขยับขึ้นลงขณะสลับหน้า
+    - แสดงป้ายสถานะ Pill Badges ซอฟต์โทน: `เปิด` (`bg-emerald-50 text-emerald-600`) และ `ปิด` (`bg-rose-50 text-rose-500`)
+    - แสดงปุ่มแก้ไข (Edit Button) ดีไซน์ Pill Button สีขาวขอบเทาอ่อน พร้อมไอคอนและข้อความ `แก้ไขโมดูล` (`[SquarePen] แก้ไขโมดูล`) ถอดแบบตรงตามภาพตัวอย่าง 100%
+  - **Module Form Modal Subsystem (`src/components/modules/ModuleFormModal.tsx`):**
+    - พัฒนา Reusable Modal สำหรับสร้างและแก้ไขข้อมูลโมดูล รองรับทั้งโหมด `เพิ่มโมดูล (Module)` และ `แก้ไขโมดูล (Module)` ตามแบบภาพออกแบบ 100%
+    - **Form Inputs & Layout:** แถวที่ 1 `เรียงลำดับ (Sidebar)` *, แถวที่ 2 `ชื่อโมดูล (ภาษาไทย/ภาษาอังกฤษ)` *, แถวที่ 3 `Dashboard (ไทย/อังกฤษ)` *
+    - **Interactive Custom Toggle Switches:** การ์ดสวิตช์เปิด-ปิดสำหรับ `ยืนยันตัวตน`, `กอง/หน่วยงาน`, `เฉพาะแอดมิน`, และ `Dashboard` ในดีไซน์ MueangSmart Theme (`sky-600` active / `slate-300` inactive)
+    - **State Management & 100% Mock Data Synchronization:** ปรับปรุงค่าสถานะป้ายเปิด/ปิดของทั้ง 14 โมดูลใน `useModules.ts` ให้ตรงถอดแบบจากภาพตัวอย่างล่าสุด 100% (รวมถึงรายการที่ 1: `ปิด, เปิด, ปิด, เปิด`, รายการที่ 8: `ปิด, เปิด, เปิด, ปิด`, รายการที่ 10: `ปิด, เปิด, เปิด, ปิด` และรายการที่ 12: `ปิด, เปิด, ปิด, เปิด`)
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Frontend Layer:** Next.js 16 App Router, Pure React Hooks (`useModules`), Lucide Icons (`LayoutGrid`, `Search`, `Plus`, `SquarePen`)
+- **Styling Tokens:** MueangSmart Enterprise Design System (Tailwind CSS, Soft Tint Status Badges)
+- **Strict Governance:** Clean code structure, 0 explicit `any`, zero redundant comments, clean separation of concerns
+
+### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **TypeScript Typecheck:** `pnpm typecheck` Passed 100% (0 errors)
+- **Next.js Production Build:** `pnpm build` Passed 100% (Compiled `/modules` static page successfully)
+
