@@ -19,8 +19,34 @@ import {
   ExternalLink, 
   Users, 
   UserCheck, 
-  Plus 
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Search,
 } from "lucide-react";
+
+function SortIcon({
+  field,
+  currentField,
+  direction,
+}: {
+  field: string;
+  currentField: string | null;
+  direction: "asc" | "desc" | null;
+}) {
+  if (currentField !== field) {
+    return <ArrowUpDown className="w-3 h-3 text-slate-400 opacity-40 shrink-0" />;
+  }
+  return direction === "asc" ? (
+    <ArrowUp className="w-3 h-3 text-sky-600 font-bold shrink-0" />
+  ) : (
+    <ArrowDown className="w-3 h-3 text-sky-600 font-bold shrink-0" />
+  );
+}
 
 function CityLogo({ logoUrl, name }: { logoUrl?: string; name: string }) {
   const [imgError, setImgError] = useState(false);
@@ -95,8 +121,48 @@ export default function CitiesPage() {
     (city.name_en && city.name_en.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const totalPages = Math.ceil(filteredCities.length / pageSize) || 1;
-  const paginatedCities = filteredCities.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const [sortField, setSortField] = useState<keyof City | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+
+  const handleSort = (field: keyof City) => {
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === "desc" ? "asc" : "desc"));
+    } else {
+      setSortField(field);
+      setSortDirection("desc");
+    }
+  };
+
+  const sortedCities = React.useMemo(() => {
+    if (!sortField) return filteredCities;
+    return [...filteredCities].sort((a, b) => {
+      const aVal = a[sortField];
+      const bVal = b[sortField];
+
+      if (aVal === bVal) return 0;
+      if (aVal === null || aVal === undefined) return 1;
+      if (bVal === null || bVal === undefined) return -1;
+
+      let comparison = 0;
+      if (typeof aVal === "number" && typeof bVal === "number") {
+        comparison = aVal - bVal;
+      } else if (typeof aVal === "boolean" && typeof bVal === "boolean") {
+        comparison = (aVal ? 1 : 0) - (bVal ? 1 : 0);
+      } else {
+        const strA = String(aVal);
+        const strB = String(bVal);
+        comparison = strA.localeCompare(strB, "th", { numeric: true, sensitivity: "base" });
+      }
+
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+  }, [filteredCities, sortField, sortDirection]);
+
+  const totalItems = sortedCities.length;
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+  const paginatedCities = sortedCities.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const startItem = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const endItem = Math.min(currentPage * pageSize, totalItems);
 
   const handleOpenCreateModal = () => {
     setCreateModalOpen(true);
@@ -184,7 +250,7 @@ export default function CitiesPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 2xl:grid-cols-5 gap-3 sm:gap-4 lg:gap-5">
               <MetricCard
                 title="เมืองทั้งหมด"
                 value={totalCities}
@@ -231,19 +297,25 @@ export default function CitiesPage() {
               />
             </div>
 
-            <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200/80 shadow-2xs space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+              <div className="p-4 sm:p-6 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <h2 className="text-base sm:text-lg font-bold text-slate-900">
                   รายการเมืองทั้งหมด ({filteredCities.length})
                 </h2>
                 <div className="flex items-center gap-3">
-                  <input
-                    type="text"
-                    placeholder="ค้นหาเมือง"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-48 sm:w-64 bg-slate-50 border border-slate-300 focus:border-sky-500 focus:bg-white rounded-xl py-2 px-3 text-xs sm:text-sm text-slate-900 outline-none transition-all"
-                  />
+                  <div className="relative w-48 sm:w-64">
+                    <input
+                      type="text"
+                      placeholder="ค้นหาเมือง"
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="w-full bg-slate-50 border border-slate-300 focus:border-sky-500 focus:bg-white rounded-xl py-2 px-3 pr-9 text-xs sm:text-sm text-slate-900 outline-none transition-all"
+                    />
+                    <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
                   {canEdit && (
                     <button
                       onClick={handleOpenCreateModal}
@@ -257,28 +329,96 @@ export default function CitiesPage() {
               </div>
 
               {loading ? (
-                <LoadingSpinner label="กำลังโหลดข้อมูลรายการเมือง..." />
+                <div className="p-4 sm:p-6">
+                  <LoadingSpinner label="กำลังโหลดข้อมูลรายการเมือง..." />
+                </div>
               ) : filteredCities.length === 0 ? (
                 <div className="py-12 text-center text-slate-400">ไม่พบข้อมูลเมืองในระบบ</div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs sm:text-sm text-slate-700 table-fixed min-w-[950px]">
-                    <thead className="text-xs bg-slate-50 text-slate-700 border-b border-slate-200">
+                  <table className="w-full text-left text-xs sm:text-sm text-slate-700 table-fixed min-w-[780px]">
+                    <colgroup>
+                      <col className="w-[32%]" />
+                      <col className="w-[9%]" />
+                      <col className="w-[7%]" />
+                      <col className="w-[6%]" />
+                      <col className="w-[6%]" />
+                      <col className="w-[9%]" />
+                      <col className="w-[10%]" />
+                      <col className="w-[21%]" />
+                    </colgroup>
+                    <thead className="text-xs bg-slate-50/80 text-slate-700 border-b border-slate-200 font-bold select-none">
                       <tr>
-                        <th className="py-3 px-4 font-bold w-[28%]">ชื่อเมือง / ที่อยู่</th>
-                        <th className="py-3 px-4 font-bold text-center w-[90px]">สถานะ</th>
-                        <th className="py-3 px-4 font-bold text-center w-[75px]">Module</th>
-                        <th className="py-3 px-4 font-bold text-center w-[75px]">River</th>
-                        <th className="py-3 px-4 font-bold text-center w-[75px]">Sense</th>
-                        <th className="py-3 px-4 font-bold text-right w-[105px]">ผู้ใช้งาน</th>
-                        <th className="py-3 px-4 font-bold text-right w-[115px]">ผู้ลงทะเบียน</th>
-                        <th className="py-3 px-4 font-bold text-center w-[215px]">การจัดการ</th>
+                        <th
+                          onClick={() => handleSort("name_th")}
+                          className="py-2.5 pl-4 sm:pl-6 pr-2 text-left cursor-pointer hover:bg-slate-100/80 transition-colors"
+                        >
+                          <div className="flex items-center gap-1">
+                            <span>ชื่อเมือง / ที่อยู่</span>
+                            <SortIcon field="name_th" currentField={sortField} direction={sortDirection} />
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleSort("status")}
+                          className="py-2.5 px-2 text-center cursor-pointer hover:bg-slate-100/80 transition-colors"
+                        >
+                          <div className="flex items-center justify-center gap-1">
+                            <span>สถานะ</span>
+                            <SortIcon field="status" currentField={sortField} direction={sortDirection} />
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleSort("modules_count")}
+                          className="py-2.5 px-2 text-center cursor-pointer hover:bg-slate-100/80 transition-colors"
+                        >
+                          <div className="flex items-center justify-center gap-1">
+                            <span>Module</span>
+                            <SortIcon field="modules_count" currentField={sortField} direction={sortDirection} />
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleSort("river_status")}
+                          className="py-2.5 px-2 text-center cursor-pointer hover:bg-slate-100/80 transition-colors"
+                        >
+                          <div className="flex items-center justify-center gap-1">
+                            <span>River</span>
+                            <SortIcon field="river_status" currentField={sortField} direction={sortDirection} />
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleSort("sense_status")}
+                          className="py-2.5 px-2 text-center cursor-pointer hover:bg-slate-100/80 transition-colors"
+                        >
+                          <div className="flex items-center justify-center gap-1">
+                            <span>Sense</span>
+                            <SortIcon field="sense_status" currentField={sortField} direction={sortDirection} />
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleSort("active_users_count")}
+                          className="py-2.5 px-2 text-right cursor-pointer hover:bg-slate-100/80 transition-colors"
+                        >
+                          <div className="flex items-center justify-end gap-1">
+                            <span>ผู้ใช้งาน</span>
+                            <SortIcon field="active_users_count" currentField={sortField} direction={sortDirection} />
+                          </div>
+                        </th>
+                        <th
+                          onClick={() => handleSort("registered_users_count")}
+                          className="py-2.5 px-2 text-right cursor-pointer hover:bg-slate-100/80 transition-colors"
+                        >
+                          <div className="flex items-center justify-end gap-1">
+                            <span>ผู้ลงทะเบียน</span>
+                            <SortIcon field="registered_users_count" currentField={sortField} direction={sortDirection} />
+                          </div>
+                        </th>
+                        <th className="py-2.5 pl-2 pr-4 sm:pr-6 text-center">การจัดการ</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {paginatedCities.map((city) => (
                         <tr key={city.id} className="hover:bg-slate-50/80 transition-all">
-                          <td className="py-3.5 px-4">
+                          <td className="py-3.5 pl-4 sm:pl-6 pr-2">
                             <div className="flex items-center gap-3 min-w-0">
                               <CityLogo logoUrl={city.logo_url} name={city.name_th} />
                               <div className="min-w-0 flex-1">
@@ -291,7 +431,7 @@ export default function CitiesPage() {
                               </div>
                             </div>
                           </td>
-                          <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                          <td className="py-3.5 px-2 text-center whitespace-nowrap">
                             <span
                               className={`inline-block px-3 py-0.5 rounded-full text-xs font-medium ${
                                 city.status === "ใช้งาน" || city.status === "Active"
@@ -302,22 +442,22 @@ export default function CitiesPage() {
                               {city.status === "Active" ? "ใช้งาน" : city.status === "Inactive" ? "ไม่ใช้งาน" : city.status}
                             </span>
                           </td>
-                          <td className="py-3.5 px-4 text-center font-medium text-slate-800 whitespace-nowrap">
+                          <td className="py-3.5 px-2 text-center font-medium text-slate-800 whitespace-nowrap">
                             {city.modules_count || city.active_modules_count || 8}
                           </td>
-                          <td className="py-3.5 px-4 text-center font-medium text-slate-800 whitespace-nowrap">
+                          <td className="py-3.5 px-2 text-center font-medium text-slate-800 whitespace-nowrap">
                             {city.river_status ?? "-"}
                           </td>
-                          <td className="py-3.5 px-4 text-center font-medium text-slate-800 whitespace-nowrap">
+                          <td className="py-3.5 px-2 text-center font-medium text-slate-800 whitespace-nowrap">
                             {city.sense_status ?? "-"}
                           </td>
-                          <td className="py-3.5 px-4 text-right font-medium text-slate-800 whitespace-nowrap">
+                          <td className="py-3.5 px-2 text-right font-medium text-slate-800 whitespace-nowrap">
                             {(city.active_users_count || 0).toLocaleString()}
                           </td>
-                          <td className="py-3.5 px-4 text-right font-medium text-slate-800 whitespace-nowrap">
+                          <td className="py-3.5 px-2 text-right font-medium text-slate-800 whitespace-nowrap">
                             {(city.registered_users_count || Math.round((city.active_users_count || 0) * 1.5)).toLocaleString()}
                           </td>
-                          <td className="py-3.5 px-4 text-center whitespace-nowrap space-x-2">
+                          <td className="py-3.5 pl-2 pr-4 sm:pr-6 text-center whitespace-nowrap space-x-1.5">
                             <Link
                               href={`/cities/${city.id}`}
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-sky-200 bg-sky-50/60 hover:bg-sky-100 text-sky-600 rounded-lg text-xs font-semibold shadow-2xs transition-all cursor-pointer"
@@ -343,70 +483,66 @@ export default function CitiesPage() {
                 </div>
               )}
 
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-100 text-xs text-slate-500">
-                <div className="flex items-center gap-2">
-                  <span>แสดง</span>
-                  <select
-                    value={pageSize}
-                    onChange={(e) => {
-                      setPageSize(Number(e.target.value));
-                      setCurrentPage(1);
-                    }}
-                    className="bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 outline-none text-xs font-medium text-slate-700"
-                  >
-                    <option value={10}>10</option>
-                    <option value={20}>20</option>
-                    <option value={50}>50</option>
-                  </select>
-                  <span>รายการต่อหน้า</span>
+              <div className="p-4 sm:p-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="text-xs text-slate-500 font-medium">
+                  แสดง {startItem} - {endItem} จาก {totalItems} รายการ
                 </div>
 
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setCurrentPage(1)}
-                    disabled={currentPage === 1}
-                    className="px-2 py-1 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold"
-                  >
-                    &laquo;
-                  </button>
-                  <button
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    className="px-2 py-1 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold"
-                  >
-                    &lt;
-                  </button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2 text-xs text-slate-600 font-medium">
+                    <span>แสดง</span>
+                    <div className="relative">
+                      <select
+                        value={pageSize}
+                        onChange={(e) => {
+                          setPageSize(Number(e.target.value));
+                          setCurrentPage(1);
+                        }}
+                        className="appearance-none bg-white border border-slate-200 rounded-lg pl-3 pr-8 py-1.5 text-xs text-slate-700 font-semibold focus:outline-none focus:border-sky-500 cursor-pointer shadow-2xs"
+                      >
+                        <option value={10}>10</option>
+                        <option value={25}>25</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                      </select>
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
                     <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${
-                        currentPage === page
-                          ? "bg-sky-600 text-white shadow-sm"
-                          : "text-slate-600 hover:bg-slate-100 border border-slate-200"
-                      }`}
+                      type="button"
+                      disabled={currentPage <= 1}
+                      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                      className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-all cursor-pointer shadow-2xs"
                     >
-                      {page}
+                      <ChevronLeft className="w-4 h-4" />
                     </button>
-                  ))}
-                  <button
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                    className="px-2 py-1 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold"
-                  >
-                    &gt;
-                  </button>
-                  <button
-                    onClick={() => setCurrentPage(totalPages)}
-                    disabled={currentPage === totalPages}
-                    className="px-2 py-1 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold"
-                  >
-                    &raquo;
-                  </button>
-                </div>
 
-                <div>
-                  ทั้งหมด {filteredCities.length} รายการ
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <button
+                        key={page}
+                        type="button"
+                        onClick={() => setCurrentPage(page)}
+                        className={`w-8 h-8 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer shadow-2xs ${
+                          currentPage === page
+                            ? "bg-white border-2 border-sky-500 text-sky-600"
+                            : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ))}
+
+                    <button
+                      type="button"
+                      disabled={currentPage >= totalPages}
+                      onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                      className="w-8 h-8 rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-all cursor-pointer shadow-2xs"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

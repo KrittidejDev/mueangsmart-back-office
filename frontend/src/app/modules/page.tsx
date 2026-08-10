@@ -14,7 +14,10 @@ import {
   SquarePen, 
   ChevronLeft, 
   ChevronRight, 
-  ChevronDown 
+  ChevronDown,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from "lucide-react";
 
 function StatusBadge({ active }: { active: boolean }) {
@@ -32,6 +35,25 @@ function StatusBadge({ active }: { active: boolean }) {
   );
 }
 
+function SortIcon({
+  field,
+  currentField,
+  direction,
+}: {
+  field: string;
+  currentField: string | null;
+  direction: "asc" | "desc" | null;
+}) {
+  if (currentField !== field) {
+    return <ArrowUpDown className="w-3 h-3 text-slate-400 opacity-40 shrink-0" />;
+  }
+  return direction === "asc" ? (
+    <ArrowUp className="w-3 h-3 text-sky-600 font-bold shrink-0" />
+  ) : (
+    <ArrowDown className="w-3 h-3 text-sky-600 font-bold shrink-0" />
+  );
+}
+
 export default function ModulesPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const {
@@ -45,6 +67,9 @@ export default function ModulesPage() {
     setCurrentPage,
     totalItems,
     totalPages,
+    sortField,
+    sortDirection,
+    handleSort,
     createModule,
     updateModule,
   } = useModules();
@@ -122,15 +147,15 @@ export default function ModulesPage() {
               </div>
 
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                <div className="relative flex-1 sm:w-64">
+                <div className="relative w-48 sm:w-64">
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="ค้นหาโมดูล..."
-                    className="w-full pl-4 pr-10 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-all shadow-2xs"
+                    placeholder="ค้นหาโมดูล"
+                    className="w-full bg-slate-50 border border-slate-300 focus:border-sky-500 focus:bg-white rounded-xl py-2 px-3 pr-9 text-xs sm:text-sm text-slate-900 outline-none transition-all"
                   />
-                  <Search className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
 
                 <button
@@ -146,21 +171,103 @@ export default function ModulesPage() {
 
             <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm table-fixed border-collapse">
+                <table className="w-full text-left text-sm table-fixed border-collapse min-w-[1150px]">
+                  <colgroup>
+                    <col className="w-[90px]" />
+                    <col className="w-[185px]" />
+                    <col className="w-[165px]" />
+                    <col className="w-[145px]" />
+                    <col className="w-[145px]" />
+                    <col className="w-[75px]" />
+                    <col className="w-[85px]" />
+                    <col className="w-[75px]" />
+                    <col className="w-[80px]" />
+                    <col className="w-[105px]" />
+                  </colgroup>
                   <thead>
-                    <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-700 text-xs font-bold">
-                      <th className="w-28 py-2 px-3 text-center leading-tight">
-                        เรียงลำดับ<br />(Sidebar)
+                    <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-700 text-xs font-bold select-none">
+                      <th
+                        onClick={() => handleSort("sort_order")}
+                        className="py-2.5 px-2 text-center leading-tight cursor-pointer hover:bg-slate-100/80 transition-colors"
+                      >
+                        <div className="flex items-center justify-center gap-1">
+                          <span className="whitespace-nowrap">เรียงลำดับ<br />(Sidebar)</span>
+                          <SortIcon field="sort_order" currentField={sortField} direction={sortDirection} />
+                        </div>
                       </th>
-                      <th className="w-48 py-2 px-4 text-left">ชื่อโมดูล (ภาษาไทย)</th>
-                      <th className="w-48 py-2 px-4 text-left">ชื่อโมดูล (ภาษาอังกฤษ)</th>
-                      <th className="w-44 py-2 px-4 text-left">Dashboard (ไทย)</th>
-                      <th className="w-44 py-2 px-4 text-left">Dashboard (อังกฤษ)</th>
-                      <th className="w-28 py-2 px-3 text-center">ยืนยันตัวตน</th>
-                      <th className="w-28 py-2 px-3 text-center">กอง/หน่วยงาน</th>
-                      <th className="w-28 py-2 px-3 text-center">เฉพาะแอดมิน</th>
-                      <th className="w-28 py-2 px-3 text-center">Dashboard</th>
-                      <th className="w-32 py-2 px-3 text-center">จัดการ</th>
+                      <th
+                        onClick={() => handleSort("name_th")}
+                        className="py-2.5 px-3 text-left cursor-pointer hover:bg-slate-100/80 transition-colors"
+                      >
+                        <div className="flex items-center gap-1">
+                          <span>ชื่อโมดูล (ภาษาไทย)</span>
+                          <SortIcon field="name_th" currentField={sortField} direction={sortDirection} />
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSort("name_en")}
+                        className="py-2.5 px-3 text-left cursor-pointer hover:bg-slate-100/80 transition-colors"
+                      >
+                        <div className="flex items-center gap-1">
+                          <span>ชื่อโมดูล (ภาษาอังกฤษ)</span>
+                          <SortIcon field="name_en" currentField={sortField} direction={sortDirection} />
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSort("dashboard_name_th")}
+                        className="py-2.5 px-3 text-left cursor-pointer hover:bg-slate-100/80 transition-colors"
+                      >
+                        <div className="flex items-center gap-1">
+                          <span>Dashboard (ไทย)</span>
+                          <SortIcon field="dashboard_name_th" currentField={sortField} direction={sortDirection} />
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSort("dashboard_name_en")}
+                        className="py-2.5 px-3 text-left cursor-pointer hover:bg-slate-100/80 transition-colors"
+                      >
+                        <div className="flex items-center gap-1">
+                          <span>Dashboard (อังกฤษ)</span>
+                          <SortIcon field="dashboard_name_en" currentField={sortField} direction={sortDirection} />
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSort("verify_identity")}
+                        className="py-2.5 px-1 text-center cursor-pointer hover:bg-slate-100/80 transition-colors"
+                      >
+                        <div className="flex items-center justify-center gap-1 leading-tight text-center">
+                          <span>ยืนยัน<br />ตัวตน</span>
+                          <SortIcon field="verify_identity" currentField={sortField} direction={sortDirection} />
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSort("department")}
+                        className="py-2.5 px-1 text-center cursor-pointer hover:bg-slate-100/80 transition-colors"
+                      >
+                        <div className="flex items-center justify-center gap-1 leading-tight text-center">
+                          <span>กอง/<br />หน่วยงาน</span>
+                          <SortIcon field="department" currentField={sortField} direction={sortDirection} />
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSort("admin_only")}
+                        className="py-2.5 px-1 text-center cursor-pointer hover:bg-slate-100/80 transition-colors"
+                      >
+                        <div className="flex items-center justify-center gap-1 leading-tight text-center">
+                          <span>เฉพาะ<br />แอดมิน</span>
+                          <SortIcon field="admin_only" currentField={sortField} direction={sortDirection} />
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSort("show_dashboard")}
+                        className="py-2.5 px-1 text-center cursor-pointer hover:bg-slate-100/80 transition-colors"
+                      >
+                        <div className="flex items-center justify-center gap-1">
+                          <span>Dashboard</span>
+                          <SortIcon field="show_dashboard" currentField={sortField} direction={sortDirection} />
+                        </div>
+                      </th>
+                      <th className="py-2.5 px-2 text-center">จัดการ</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -180,7 +287,7 @@ export default function ModulesPage() {
                             <td className="py-2 px-3 text-center font-medium text-slate-600">
                               {m.sort_order}
                             </td>
-                            <td className="py-2 px-4 font-bold text-slate-900 truncate">
+                            <td className="py-2 px-4 text-sm font-bold text-slate-900 truncate">
                               {m.name_th}
                             </td>
                             <td className="py-2 px-4 font-medium text-slate-600 truncate">

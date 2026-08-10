@@ -60,7 +60,7 @@ export default function AuditLogsPage() {
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm text-slate-700 min-w-[650px]">
-                    <thead className="text-xs uppercase bg-slate-100 text-slate-600 border-b border-slate-200">
+                    <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-700 text-xs font-bold">
                       <tr>
                         <th className="py-3.5 px-4 font-bold">เวลาที่เกิดเหตุการณ์</th>
                         <th className="py-3.5 px-4 font-bold">ผู้ทำรายการ</th>
