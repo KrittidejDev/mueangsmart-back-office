@@ -179,6 +179,8 @@ export function useModules() {
   const [searchQuery, setSearchQuery] = useState("");
   const [pageSize, setPageSize] = useState<number>(10);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [sortField, setSortField] = useState<keyof SystemModule | null>("sort_order");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   const filteredModules = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -192,13 +194,47 @@ export function useModules() {
     );
   }, [modules, searchQuery]);
 
-  const totalItems = filteredModules.length;
+  const sortedModules = useMemo(() => {
+    if (!sortField) return filteredModules;
+    return [...filteredModules].sort((a, b) => {
+      const aVal = a[sortField];
+      const bVal = b[sortField];
+
+      if (aVal === bVal) return 0;
+      if (aVal === null || aVal === undefined) return 1;
+      if (bVal === null || bVal === undefined) return -1;
+
+      let comparison = 0;
+      if (typeof aVal === "number" && typeof bVal === "number") {
+        comparison = aVal - bVal;
+      } else if (typeof aVal === "boolean" && typeof bVal === "boolean") {
+        comparison = (aVal ? 1 : 0) - (bVal ? 1 : 0);
+      } else {
+        const strA = String(aVal);
+        const strB = String(bVal);
+        comparison = strA.localeCompare(strB, "th", { numeric: true, sensitivity: "base" });
+      }
+
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+  }, [filteredModules, sortField, sortDirection]);
+
+  const handleSort = (field: keyof SystemModule) => {
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === "desc" ? "asc" : "desc"));
+    } else {
+      setSortField(field);
+      setSortDirection("desc");
+    }
+  };
+
+  const totalItems = sortedModules.length;
   const totalPages = Math.ceil(totalItems / pageSize) || 1;
 
   const paginatedModules = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
-    return filteredModules.slice(start, start + pageSize);
-  }, [filteredModules, currentPage, pageSize]);
+    return sortedModules.slice(start, start + pageSize);
+  }, [sortedModules, currentPage, pageSize]);
 
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);
@@ -231,7 +267,7 @@ export function useModules() {
   return {
     modules: paginatedModules,
     allModules: modules,
-    filteredModules,
+    filteredModules: sortedModules,
     searchQuery,
     setSearchQuery: handleSearchChange,
     pageSize,
@@ -240,6 +276,9 @@ export function useModules() {
     setCurrentPage,
     totalItems,
     totalPages,
+    sortField,
+    sortDirection,
+    handleSort,
     createModule,
     updateModule,
   };

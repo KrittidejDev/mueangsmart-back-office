@@ -837,3 +837,34 @@ ts (Line Chart & Donut Chart Subsystem):**
 - **TypeScript Typecheck:** `pnpm typecheck` Passed 100% (0 errors)
 - **Next.js Production Build:** `pnpm build` Passed 100% (Compiled `/modules` static page successfully)
 
+---
+
+## [1.0.0-alpha.42] - 2026-08-10
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Table Edge-to-Edge Layout & Header Alignment:**
+  - ปรับดีไซน์ขอบตารางในหน้าจัดการเมือง (`/cities`) และหน้า Dashboard ให้ขยายเต็มขอบการ์ด (Edge-to-Edge) ไร้ช่องว่างขอบซ้าย-ขวา สอดคล้องตามมาตรฐานเดียวกับหน้าจัดการโมดูล (`/modules`) โดยคงตำแหน่งและระยะ Padding ของแถบ Pagination ไว้อย่างถูกต้อง
+  - ปรับแต่งหัวตาราง (Table Header `thead`) ให้ใช้โทนสี `bg-slate-50/80 border-b border-slate-200 text-slate-700 text-xs font-bold` พร้อมระบบคลิกเพื่อเรียงลำดับข้อมูล (Sorting) โดยเริ่มต้นจากเรียงมากไปหาน้อย (`desc`) ก่อนเป็นลำดับแรก
+  - พัฒนา Safe Comparator Handling (`String(aVal).localeCompare(String(bVal), "th", { numeric: true, sensitivity: "base" })`) ป้องกันรันไทม์แครชจากการเปรียบเทียบชนิดข้อมูลที่หลากหลาย (Number, String, Boolean, Null/Undefined)
+- **Table Fixed Column Widths & Overflow Protection:**
+  - กำหนดโครงสร้าง `<colgroup>` และ `table-fixed` ล็อคขนาดความกว้างของคอลัมน์ตารางอย่างถาวรทั้ง 3 หน้าหลัก (Dashboard, จัดการเมือง, จัดการโมดูล) ป้องกันปัญหาตารางขยับเปลี่ยนขนาดขณะเปลี่ยนหน้า (Pagination) หรือเรียงลำดับ (Sorting)
+  - จัดรูปแบบหัวตารางภาษาไทยแบบตัดคำ 2 บรรทัด (`ยืนยัน\nตัวตน`, `กอง/\nหน่วยงาน`, `เฉพาะ\nแอดมิน`) พร้อมขยายความกว้างขั้นต่ำของตาราง (`min-w-[1150px]`) ป้องกันปัญหาตัวอักษรจมหายและปุ่มแก้ไข (`[แก้ไขโมดูล]`) ซ้อนทับกับป้าย Badge สถานะ
+  - เพิ่มขนาดฟอนต์คอลัมน์ `ชื่อโมดูล (ภาษาไทย)` ในหน้าจัดการโมดูลเป็น **14px** (`text-sm`) ตามความต้องการ
+  - ปรับสไตล์ช่องค้นหาหน้าจัดการโมดูลให้เป็นมาตรฐานเดียวกันกับหน้าจัดการเมือง (`bg-slate-50 border border-slate-300 rounded-xl`) พร้อมไอคอนแว่นขยาย (`Search`)
+- **Dashboard Map & Hover Delay Timer Subsystem:**
+  - ปรับแต่งป้าย Legend บนแผนที่หน้า Dashboard โดยถอดเงา (`shadow-md`) ออกเพื่อความกลมกลืนเนียนไปกับพื้นหลังแผนที่ พร้อมเพิ่มตัวเลขแสดงจำนวนเมืองเปิดใช้งานและไม่ได้ใช้งาน
+  - เพิ่มระบบหน่วงเวลา 2 วินาที (`hoverTimerRef` 2000ms delay) เมื่อนำเมาส์ไปชี้ที่แถวเมืองในตาราง ป้องกันแผนที่ขยับกระตุกทันทีขณะเลื่อนเมาส์ผ่านตาราง และจะเลื่อนโฟกัส (Fly/Pan) ไปยังตำแหน่งเมืองบนแผนที่เมื่อวางเมาส์แช่ครบ 2 วินาที หรือเมื่อกดคลิกแถว
+  - เพิ่มปุ่มลอยควบคุมแผนที่บริเวณมุมขวาล่าง (`bottom-right`): ปุ่มซูมเข้า (`[+]`), ปุ่มซูมออก (`[-]`) และปุ่มรีเซ็ตมุมมองประเทศไทย (`[RotateCcw]`) ดีไซน์ Frosted Glass กลมกลืนสวยงามตาม MueangSmart Design System
+- **Responsive Metric Cards & Sidebar Cleanup:**
+  - ปรับปรุงการ์ดสรุปสถิติ (`MetricCard`) ให้รองรับ Responsive sizing (ขนาดไอคอน `w-3.5 h-3.5` ถึง `w-5 h-5` พร้อม Padding กระทัดรัด `p-1.5` ถึง `p-2.5`) และใส่ `whitespace-nowrap` ป้องกันตัวเลขสถิติ (`52,185`, `318,742`) ถูกตัดขาดหรือแสดงจุดไข่ปลา
+  - ขยายความกว้าง Sidebar เป็น **`288px`** (`w-72`) ป้องกันข้อความเมนูตกบรรทัด
+  - ลบเมนูและเส้นทางที่ไม่ได้ใช้ออกจาก Sidebar: `การวิเคราะห์กลุ่มเปราะบาง` (`/analytics/vulnerable`) และ `ระบบเพิ่มเมือง (Onboarding)` (`/cities/onboarding`) พร้อมลบไฟล์ Mockup `/cities/onboarding` ออกจากโปรเจกต์อย่างเป็นระบบ (Clean Code)
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Frontend Architecture:** Reusable Responsive Components (`MetricCard`, `Sidebar`, `CityMapAndTable`), Leaflet Map Syncing with Debounced Hover Timers
+- **Strict Clean Code:** Zero redundant comments, 0 explicit `any`, zero dead code/mockup routes
+
+### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **TypeScript Typecheck:** `pnpm typecheck` Passed 100% (0 errors)
+- **Next.js Production Build:** `pnpm build` Passed 100% (Compiled cleanly, generated static & dynamic routes successfully)
+

@@ -112,7 +112,7 @@ export default function SuperAdminsPage() {
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm text-slate-700 min-w-[700px]">
-                    <thead className="text-xs uppercase bg-slate-100 text-slate-600 border-b border-slate-200">
+                    <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-700 text-xs font-bold">
                       <tr>
                         <th className="py-3.5 px-4 font-bold">ชื่อ - นามสกุล / ชื่อผู้ใช้</th>
                         <th className="py-3.5 px-4 font-bold">อีเมล</th>

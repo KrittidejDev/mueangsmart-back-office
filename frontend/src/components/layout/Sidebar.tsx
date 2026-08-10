@@ -7,8 +7,6 @@ import {
   Building2, 
   LayoutDashboard, 
   LayoutGrid,
-  Layers, 
-  PieChart, 
   ShieldCheck, 
   ClipboardList,
   LogOut,
@@ -28,8 +26,6 @@ const navItems: NavItem[] = [
   { name: "ภาพรวมสถิติ (Dashboard)", href: "/dashboard", icon: LayoutDashboard },
   { name: "จัดการเมือง (Multi-City)", href: "/cities", icon: Building2 },
   { name: "จัดการโมดูล (Module)", href: "/modules", icon: LayoutGrid },
-  { name: "การวิเคราะห์กลุ่มเปราะบาง", href: "/analytics/vulnerable", icon: PieChart },
-  { name: "ระบบเพิ่มเมือง (Onboarding)", href: "/cities/onboarding", icon: Layers, superAdminOnly: true },
   { name: "ผู้ดูแลระบบ SuperAdmin", href: "/super-admins", icon: ShieldCheck, superAdminOnly: true },
   { name: "ประวัติการใช้งาน (Audit Logs)", href: "/audit-logs", icon: ClipboardList, superAdminOnly: true },
 ];
@@ -123,7 +119,7 @@ export function Sidebar({ mobileOpen = false, setMobileOpen }: SidebarProps) {
                 }`}
               >
                 <Icon className="w-5 h-5" />
-                <span>{item.name}</span>
+                <span className="whitespace-nowrap">{item.name}</span>
               </Link>
             );
           })}
@@ -136,7 +132,7 @@ export function Sidebar({ mobileOpen = false, setMobileOpen }: SidebarProps) {
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-all cursor-pointer"
         >
           <LogOut className="w-5 h-5" />
-          <span>ออกจากระบบ</span>
+          <span className="whitespace-nowrap">ออกจากระบบ</span>
         </button>
       </div>
     </div>
@@ -145,7 +141,7 @@ export function Sidebar({ mobileOpen = false, setMobileOpen }: SidebarProps) {
   return (
     <>
       {/* Desktop Sticky Sidebar */}
-      <aside className="hidden lg:block w-64 bg-white border-r border-slate-200 h-screen sticky top-0 shadow-sm z-20">
+      <aside className="hidden lg:block w-72 bg-white border-r border-slate-200 h-screen sticky top-0 shadow-sm z-20">
         {sidebarContent}
       </aside>
 

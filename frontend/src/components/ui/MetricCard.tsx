@@ -21,17 +21,23 @@ export function MetricCard({
   loading = false,
 }: MetricCardProps) {
   return (
-    <div className="ms-card ms-card-hover p-6 rounded-2xl">
-      <div className="flex justify-between items-start">
-        <div>
-          <p className="text-xs font-bold uppercase text-slate-500 tracking-wider">{title}</p>
-          <h3 className="text-3xl font-bold text-slate-900 mt-2">
+    <div className="ms-card ms-card-hover p-3.5 sm:p-4 lg:p-5 rounded-2xl flex flex-col justify-between min-w-0">
+      <div className="flex justify-between items-start gap-1.5 sm:gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] sm:text-xs font-bold uppercase text-slate-500 tracking-wider leading-snug">
+            {title}
+          </p>
+          <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 mt-1 sm:mt-1.5 whitespace-nowrap">
             {loading ? "..." : value}
           </h3>
-          {subtitle && <p className="text-xs text-slate-500 mt-2 font-medium">{subtitle}</p>}
+          {subtitle && (
+            <p className="text-[11px] sm:text-xs text-slate-500 mt-1 sm:mt-1.5 font-medium whitespace-nowrap">
+              {subtitle}
+            </p>
+          )}
         </div>
-        <div className={`p-3 rounded-xl border ${iconBgColor} ${iconTextColor}`}>
-          <Icon className="w-6 h-6" />
+        <div className={`p-1.5 sm:p-2 lg:p-2.5 rounded-lg sm:rounded-xl border flex-shrink-0 ${iconBgColor} ${iconTextColor}`}>
+          <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-5 lg:h-5" />
         </div>
       </div>
     </div>
