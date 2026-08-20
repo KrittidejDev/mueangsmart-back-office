@@ -87,20 +87,21 @@ function ModuleFormModalContent({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+              ลำดับ (Sort Order)
+            </label>
+            <input
+              type="number"
+              value={sortOrder}
+              onChange={(e) => setSortOrder(parseInt(e.target.value) || 0)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-brand-primary font-mono"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                ลำดับ (Sort Order)
-              </label>
-              <input
-                type="number"
-                value={sortOrder}
-                onChange={(e) => setSortOrder(parseInt(e.target.value) || 0)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-slate-900 focus:outline-none focus:border-brand-primary font-mono"
-                required
-              />
-            </div>
-            <div className="sm:col-span-3">
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 ชื่อโมดูล (ภาษาไทย)
               </label>
@@ -109,23 +110,22 @@ function ModuleFormModalContent({
                 value={nameTh}
                 onChange={(e) => setNameTh(e.target.value)}
                 placeholder="เช่น ผู้สูงอายุและผู้พิการ"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-slate-900 focus:outline-none focus:border-brand-primary"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-brand-primary"
                 required
               />
             </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              ชื่อโมดูล (ภาษาอังกฤษ)
-            </label>
-            <input
-              type="text"
-              value={nameEn}
-              onChange={(e) => setNameEn(e.target.value)}
-              placeholder="เช่น Elderly and Disabled"
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-slate-900 focus:outline-none focus:border-brand-primary"
-            />
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                ชื่อโมดูล (ภาษาอังกฤษ)
+              </label>
+              <input
+                type="text"
+                value={nameEn}
+                onChange={(e) => setNameEn(e.target.value)}
+                placeholder="เช่น Elderly and Disabled"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-brand-primary"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -138,7 +138,7 @@ function ModuleFormModalContent({
                 value={dashboardNameTh}
                 onChange={(e) => setDashboardNameTh(e.target.value)}
                 placeholder="เช่น ข้อมูลสถิติผู้สูงอายุ"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-slate-900 focus:outline-none focus:border-brand-primary"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-brand-primary"
               />
             </div>
             <div>
@@ -150,12 +150,12 @@ function ModuleFormModalContent({
                 value={dashboardNameEn}
                 onChange={(e) => setDashboardNameEn(e.target.value)}
                 placeholder="เช่น Elderly Statistics"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-slate-900 focus:outline-none focus:border-brand-primary"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-brand-primary"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
             <div className="bg-white border border-slate-200/80 rounded-xl p-3.5 flex items-center justify-between shadow-2xs">
               <span className="text-xs font-bold text-slate-800">ยืนยันตัวตน</span>
               <button

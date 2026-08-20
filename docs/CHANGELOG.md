@@ -7,7 +7,8 @@
 ## [1.0.0-rc.1] - 2026-08-20
 
 ### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
-- **Frontend Code Quality & React 19 Compliance:**
+- **Frontend Code Quality & UI Refinement:**
+  - จัดระเบียบ Layout ใน `ModuleFormModal.tsx` ตามโครงสร้างแบบคู่ 2 คอลัมน์ (Sort Order, Name TH/EN, Dashboard Name TH/EN) และจัด Switch Toggle ให้แสดงเป็น 2 คอลัมน์ต่อบรรทัดอย่างเป็นระเบียบ
   - สร้างไฟล์ `eslint.config.mjs` รองรับ **ESLint 9 Flat Config** ร่วมกับ Next.js 16
   - ปรับปรุงการจัดการ Modal State ใน `CityFormModal.tsx` และ `ModuleFormModal.tsx` ให้ใช้ Key-based State Initialization ป้องกัน Cascading Re-render และขจัด `react-hooks/set-state-in-effect`
   - ปรับปรุง `ProtectedRoute.tsx`, `CityUsageAnalytics.tsx` และ `Sidebar.tsx` ให้ใช้ `useSyncExternalStore` และ Pure Derived State
