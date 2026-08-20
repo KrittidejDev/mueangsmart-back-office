@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { ShieldCheck, Lock, User, AlertCircle, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -27,7 +28,6 @@ export default function LoginPage() {
       router.push("/dashboard");
     }
   }, [hasHydrated, isAuthenticated, router]);
-
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,15 +58,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100 relative overflow-hidden px-4">
-      {/* Background Subtle Gradient */}
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-sky-200/50 rounded-full blur-3xl" />
-      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-sky-100/60 rounded-full blur-3xl" />
-
-      <div className="w-full max-w-md bg-white border border-slate-200 p-8 rounded-2xl shadow-xl relative z-10">
+    <div 
+      className="min-h-screen flex items-center justify-center relative overflow-hidden px-4"
+      style={{ background: "linear-gradient(180deg, #ffffff 0%, #1dd5df 50%, #220e78 100%)" }}
+    >
+      <div className="w-full max-w-md bg-white/95 backdrop-blur-md border border-slate-200 p-8 rounded-2xl shadow-xl relative z-10">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-sky-50 border border-sky-100 text-sky-600 mb-4 shadow-sm">
-            <ShieldCheck className="w-8 h-8" />
+          <div className="inline-flex items-center justify-center w-16 h-16 mb-4 drop-shadow-sm">
+            <Image 
+              src="/images/logo-icon.webp" 
+              alt="MueangSmart Logo" 
+              width={64}
+              height={64}
+              priority
+              className="w-16 h-16 object-contain"
+            />
           </div>
           <h1 className="text-2xl font-bold text-slate-800 tracking-tight">MueangSmart Back Office</h1>
           <p className="text-sm text-slate-500 mt-1">ระบบบริหารจัดการเมืองอัจฉริยะ (SuperAdmin)</p>
@@ -92,7 +98,7 @@ export default function LoginPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="superadmin"
-                className="w-full bg-slate-50 border border-slate-300 focus:border-sky-500 focus:bg-white rounded-xl py-3 pl-10 pr-4 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all"
+                className="w-full bg-slate-50 border border-slate-300 focus:border-brand-primary focus:bg-white rounded-xl py-3 pl-10 pr-4 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all"
               />
             </div>
           </div>
@@ -109,7 +115,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-slate-50 border border-slate-300 focus:border-sky-500 focus:bg-white rounded-xl py-3 pl-10 pr-4 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all"
+                className="w-full bg-slate-50 border border-slate-300 focus:border-brand-primary focus:bg-white rounded-xl py-3 pl-10 pr-4 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all"
               />
             </div>
           </div>
@@ -117,7 +123,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 px-4 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white font-semibold text-sm rounded-xl shadow-md shadow-sky-600/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full py-3.5 px-4 bg-brand-primary hover:bg-brand-hover text-white font-semibold text-sm rounded-xl shadow-md shadow-brand-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
           >
             {loading ? (
               <>

@@ -10,13 +10,20 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        brand: {
+          DEFAULT: "#210e79",
+          primary: "#210e79",
+          hover: "#190961",
+          light: "#ece9fa",
+          cyan: "#1dd5df",
+        },
         ms: {
-          50: "#f0f9ff",
-          100: "#e0f2fe",
-          500: "#0ea5e9",
-          600: "#0284c7",
-          700: "#0369a1",
-          900: "#0c4a6e",
+          50: "#ece9fa",
+          100: "#dcd6f5",
+          500: "#361db5",
+          600: "#210e79",
+          700: "#190961",
+          900: "#0f0545",
         },
       },
       fontFamily: {

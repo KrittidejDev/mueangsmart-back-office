@@ -1,3 +1,4 @@
+@import "leaflet/dist/leaflet.css";
 @import "tailwindcss/base";
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
@@ -5,6 +6,10 @@
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
+  --brand-primary: #210e79;
+  --brand-hover: #190961;
+  --brand-light: #ece9fa;
+  --brand-cyan: #1dd5df;
 }
 
 body {
@@ -12,6 +17,37 @@ body {
   background: var(--background);
   font-family: var(--font-prompt), Inter, sans-serif;
   overflow-x: hidden;
+}
+
+@layer base {
+  input:not([type="radio"]):not([type="checkbox"]),
+  textarea,
+  select {
+    transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+                box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+                background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  input:not([type="radio"]):not([type="checkbox"]):focus,
+  textarea:focus,
+  select:focus {
+    border-color: var(--brand-primary) !important;
+    outline: 2px solid transparent !important;
+    outline-offset: 2px !important;
+    box-shadow: 0 0 0 3px rgba(33, 14, 121, 0.12) !important;
+  }
+
+  input[type="radio"],
+  input[type="checkbox"] {
+    border-radius: 9999px !important;
+    accent-color: var(--brand-primary);
+  }
+
+  input[type="radio"]:focus,
+  input[type="checkbox"]:focus {
+    outline: none !important;
+    box-shadow: none !important;
+  }
 }
 
 .ms-card {
@@ -26,4 +62,23 @@ body {
 
 .ms-card-hover:hover {
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+}
+
+.leaflet-container .leaflet-popup-close-button {
+  display: none !important;
+}
+
+.leaflet-container .leaflet-popup-content-wrapper {
+  padding: 10px 14px !important;
+  border-radius: 16px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
+}
+
+.leaflet-container .leaflet-popup-content {
+  margin: 0 !important;
+  line-height: 1.4 !important;
+}
+
+.leaflet-control-attribution {
+  display: none !important;
 }
