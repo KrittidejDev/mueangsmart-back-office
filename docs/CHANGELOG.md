@@ -4,6 +4,24 @@
 
 ---
 
+## [1.0.0-rc.1] - 2026-08-20
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Frontend Code Quality & UI Refinement:**
+  - จัดระเบียบ Layout ใน `ModuleFormModal.tsx` ตามโครงสร้างแบบคู่ 2 คอลัมน์ (Sort Order, Name TH/EN, Dashboard Name TH/EN) และจัด Switch Toggle ให้แสดงเป็น 2 คอลัมน์ต่อบรรทัดอย่างเป็นระเบียบ
+  - สร้างไฟล์ `eslint.config.mjs` รองรับ **ESLint 9 Flat Config** ร่วมกับ Next.js 16
+  - ปรับปรุงการจัดการ Modal State ใน `CityFormModal.tsx` และ `ModuleFormModal.tsx` ให้ใช้ Key-based State Initialization ป้องกัน Cascading Re-render และขจัด `react-hooks/set-state-in-effect`
+  - ปรับปรุง `ProtectedRoute.tsx`, `CityUsageAnalytics.tsx` และ `Sidebar.tsx` ให้ใช้ `useSyncExternalStore` และ Pure Derived State
+  - แทนที่ `<img>` ด้วย Next.js `<Image />` พร้อม Type-safe Optimization
+  - แก้ไข HTML Entities และลบ Impure Function `Math.random` ออกจาก Render Path
+  - Strict Type Safety: ปราศจาก `any` และคงไว้ซึ่ง Clean Code Standards ตาม `AGENTS.md`
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Engine:** Next.js 16 + React 19 + TypeScript + ESLint 9 (Flat Config)
+- **Optimization:** `useSyncExternalStore`, React 19 Pure Component Lifecycle, Next.js Image Optimization
+
+---
+
 ## [1.0.0-alpha.1] - 2026-07-27
 
 ### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
@@ -521,18 +539,350 @@
 
 ---
 
-## [1.0.0-alpha.25] - 2026-07-27
+
+---
+
+## [1.0.0-alpha.26] - 2026-08-04
 
 ### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
-- **Comprehensive Frontend Auth Guard & Auto-Redirect Subsystem:**
-  - **Login Page Auth Check (`login/page.tsx`):** เพิ่มการตรวจสอบ Auth State เมื่อเปิดหน้าเข้าสู่ระบบ หากผู้ใช้งานมี Token ในระบบอยู่แล้ว (`isAuthenticated = true`) ระบบจะนำทางไปยังหน้า `/dashboard` โดยอัตโนมัติ
-  - **Protected Routes Enforcer (`dashboard/page.tsx`, `cities/page.tsx`, `cities/[id]/page.tsx`):** ห่อหุ้มหน้าจอ Dashboard และ Multi-City Operations ด้วย `<ProtectedRoute>` หากตรวจไม่พบ Token หรือผู้ใช้ยังไม่ได้ล็อกอิน ระบบจะสั่ง Redirect นำทางกลับไปยังหน้า `/login` ทันที
-  - **Axios 401 Unauthorized Interceptor (`src/lib/api.ts`):** เพิ่ม Response Interceptor ตรวจสอบคำตอบ HTTP 401 จาก Backend หาก Token หมดอายุหรือไม่อนุมัติ ระบบจะทำการล้าง `localStorage` แล้วสั่ง Redirect กลับไปหน้า `/login` ทันที
+- **Dashboard Overview Metric Cards Redesign (Frontend Mockup & Future API Integration Ready):**
+  - ยกเลิกการแสดงผล 2 การ์ดเดิมบน Dashboard หน้าบ้าน ("ผู้ป่วยติดเตียง" และ "ผู้สูงอายุ / ผู้พิการ")
+  - เพิ่มและเรียงลำดับการ์ดสถิติ 6 รายการตามแบบโครงสร้างภาพที่ 2 (ตัดคำว่า 'จำนวน' ออกจากชื่อหัวข้อ):
+    1. **เมืองทั้งหมด:** Value: `156`, Subtitle: `เมือง`, Icon: `Building2`, Tone: Sky Blue
+    2. **เมืองที่เปิดใช้งาน:** Value: `28`, Subtitle: `เมือง (82.05%)`, Icon: `CheckSquare`, Tone: Emerald Green
+    3. **เมืองที่ไม่ได้เปิดใช้งาน:** Value: `28`, Subtitle: `เมือง (17.59%)`, Icon: `Target`, Tone: Rose Red
+    4. **ผู้ใช้งานทั้งหมด:** Value: `452,185`, Subtitle: `คน`, Icon: `Users`, Tone: Indigo
+    5. **ผู้ลงทะเบียนทั้งหมด:** Value: `318,742`, Subtitle: `คน`, Icon: `UserCheck`, Tone: Amber Orange
+    6. **แอดมินทั้งหมด:** Value: `79`, Subtitle: `คน`, Icon: `ShieldCheck`, Tone: Purple Violet
+  - ใช้ชุดไอคอนขนาด `w-6 h-6` ภายในกรอบ `p-3 rounded-xl border` ซึ่งเป็นขนาดและรูปแบบเดียวกับภาพที่ 1
+  - อัปเดต `Overview` TypeScript interface ใน `src/hooks/useAnalytics.ts` เพิ่มฟิลด์รองรับ API (`inactive_cities`, `registered_users`, `total_admins`) พร้อมระบบ Fallback ตัวเลข Mockup เพื่อให้รองรับการเชื่อมต่อกั---
+
+## [1.0.0-alpha.40] - 2026-08-07
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **City Detail & Statistics Page Redesign (`src/app/cities/[id]/page.tsx` matching DrawIO Mockup):**
+  - ดีไซน์หน้ารายละเอียดเมืองและสถิติการใช้งานระบบตรงตามแบบ DrawIO Mockup 100%
+  - **Top Action Bar:** แสดง Badge `UAT Environment Connected`, ปุ่มย้อนกลับไปหน้ารายการเมือง, Date Filter Selector (`1 ม.ค. 2569 - 31 ธ.ค. 2569`), และปุ่มดาวน์โหลดรายงาน (`ส่งออกรายงาน`)
+  - **City Banner Header:** แสดงตราโลโก้/สัญลักษณ์เทศบาล, ชื่อภาษาไทย/อังกฤษ, ที่อยู่ติดต่อ, เบอร์โทรศัพท์, พิกัด GPS ละติจูด/ลองจิจูด, ป้ายสถานะ `เปิดใช้งาน`, และปุ่ม `แก้ไขเมือง` (เปิด `CityFormModal`)
+  - **Top KPI Cards (3 Cards):** ผู้ลงทะเบียน (User: 4,540 คน), ผู้ใช้งาน (User Active: 865 คน / 82.05%), และผู้ดูแลระบบ (Admin: 28 คน)
+  - **โมดูลหลัก (11 Cards):** ผู้สูงอายุและผู้พิการ, ผู้ป่วยติดเตียง, ศูนย์ร้องทุกข์ร้องเรียน, ร้องทุกข์ร้องเรียน, ภาษี, สัตว์เลี้ยง, ยืนยันตัวตน, ประชาสัมพันธ์, การแจ้งเตือน, ค่าธรรมเนียมขยะ (พร้อม Badge `ระบบใหม่`), และกล้องวงจรปิด CCTV (Badge `ปิดใช้งาน`)
+  - **โมดูลเพิ่มเติม (2 Cards):** ระบบตรวจวัดระดับน้ำ (River) และระบบตรวจวัดสภาพอากาศ (Sence) พร้อมตัวเลขสถานีออนไลน์/ออฟไลน์
+  - **Mockup Interactive Functions:** ปุ่ม `แก้ไขเมือง` เชื่อมต่อกับ `CityFormModal` ใน Edit Mode พร้อม `SuccessModal` แจ้งเตือน และปุ่ม `ส่งออกรายงาน` ดาวน์โหลดไฟล์ CSV Mockup
 
 ### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
-- **Security & Route Guard:** React 19 Client-Side Hydration Guard + Axios Response Interceptor Pattern
+- **Frontend Architecture:** Reusable Component Integration + Next.js App Router Dynamic Page (`app/cities/[id]/page.tsx`)
+- **Theme & Styling:** Tailwind CSS Clean Enterprise Corporate Design Tokens (MueangSmart Design System)
+- **Strict Type Safety:** Pure React Hooks, 0 explicit `any`, zero redundant comments
+
+### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **TypeScript Typecheck:** `pnpm typecheck` Passed 100% (0 type errors)
+- **Next.js Production Build:** `pnpm build` Passed 100% (Compiled and generated static/dynamic routes successfully)
+ts (Line Chart & Donut Chart Subsystem):**
+  - สร้าง Reusable Component [`src/components/dashboard/CityUsageAnalytics.tsx`](file:///Users/luxantin/RepositoryProject/Backoffice/mueangsmart-back-office/frontend/src/components/dashboard/CityUsageAnalytics.tsx) วางตำแหน่งต่อจากกล่อง Pending Approvals Notice Banner
+  - **Year Dropdown Selector:** ปุ่มเลือกเปลี่ยนสถิติรายปี (ปี 2569, ปี 2568, ปี 2567) พร้อมไอคอนปฏิทิน
+  - **Interactive Line Chart Panel (ฝั่งซ้าย ~67%):**
+    - แสดงกราฟเปรียบเทียบเมือง "เปิดใช้งาน (เมือง)" (เส้นสีฟ้า) vs "ไม่ได้ใช้งาน (เมือง)" (เส้นสีแดง)
+    - แสดงแกน X 12 เดือน (ม.ค. - ธ.ค.) แกน Y (-20 ถึง 100) พร้อม Smooth Gradient Fill และ Custom Data Label แสดงตัวเลขสถิติบนจุดกราฟเส้นในแต่ละเดือน
+  - **Interactive Donut Chart Panel (ฝั่งขวา ~33%):**
+    - แสดง Donut Chart สัดส่วนการใช้งานระบบ (เมือง) พร้อมเปอร์เซ็นต์กลางวงกลม (เช่น `82.05% เปิดใช้งาน`)
+    - แสดงสรุปยอดรวมด้านล่าง (`128 เมือง (82.05%)` vs `28 เมือง (17.95%)`)
+    - ข้อมูลกราฟเส้นและสัดส่วนโดนัททำงานเชื่อมโยงกัน 100% เมื่อมีการสลับเลือกปีใน Dropdown
+
+- **Chart Hover Tooltip Duplication Fix:**
+  - สร้าง `CustomChartTooltip` และตั้งค่า `tooltipType="none"` บน `<Area>` components ใน [`src/components/dashboard/CityUsageAnalytics.tsx`](file:///Users/luxantin/RepositoryProject/Backoffice/mueangsmart-back-office/frontend/src/components/dashboard/CityUsageAnalytics.tsx) เพื่อยกเลิกรายการซ้ำซ้อนตอน Hover เมาส์
+  - จัดสไตล์ Tooltip แบบเดี่ยวด้วยข้อความสีฟ้า (เปิดใช้งาน) และสีแดง (ไม่ได้ใช้งาน) ชัดเจน สวยงาม คลีน 100%
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Chart Engine:** Recharts (`ComposedChart`, `Line`, `Area`, `PieChart`, `Pie`, `Cell`, `ResponsiveContainer`) + Custom Tooltip Component Pattern
+- **SSR Safety:** React 19 Client Component Mounted Guard Pattern (Zero SSR Hydration Mismatch)
 
 ### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
 - **TypeScript Typecheck:** `pnpm run typecheck` (`tsc --noEmit`) Passed 100%
+- **Build Verification:** `pnpm build` Passed 100% (Compiled with Turbopack in 1.5s)
 
+---
+
+## [1.0.0-alpha.28] - 2026-08-04
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Interactive Thailand City Map & Municipalities Data Table Subsystem:**
+  - สร้าง Reusable Component [`src/components/dashboard/CityMapAndTable.tsx`](file:///Users/luxantin/RepositoryProject/Backoffice/mueangsmart-back-office/frontend/src/components/dashboard/CityMapAndTable.tsx) วางตำแหน่งต่อจากส่วนสถิติกราฟรายปี
+  - **Thailand City Map Panel (ฝั่งซ้าย ~45%):**
+    - แสดงแผนที่ประเทศไทยพร้อมหมุดเทศบาลเมืองจริงรวม 30 รายการ แบ่งเป็นเมืองเปิดใช้งาน (หมุดฟ้า) และเมืองปิดใช้งาน (หมุดแดง ~5 เมืองปะปน)
+    - รองรับ Interactive Hover: เมื่อนำเมาส์ชี้หมุดบนแผนที่ จะแสดง Tooltip Popover ระบุชื่อเทศบาล, จำนวนประชากร และจำนวนผู้ใช้งาน/ลงทะเบียน
+  - **Municipalities Data Table Panel (ฝั่งขวา ~55%):**
+    - แสดงตารางข้อมูล 6 คอลัมน์ตรงตามแบบ: `เมือง`, `Module`, `River`, `Sense`, `ประชากร`, `ผู้ใช้งาน (ลงทะเบียน)`
+  - **Pagination & Total Count Fix:** ปรับจำนวนเมืองรวมจาก 156 เป็น 30 เมือง (`1-10 จาก 30 เมือง` หน้าละ 10 รายการ รวม 3 หน้า พร้อมลบปุ่มกดหน้าเกินออก)
+  - **Explicit Metric Card Mockup Values Alignment:** กำหนดค่า Mockup ตัวเลขตรงตามภาพดีไซน์ที่ 2 (`156`, `28`, `28`, `452,185`, `318,742`, `79`) ใน [`src/app/dashboard/page.tsx`](file:///Users/luxantin/RepositoryProject/Backoffice/mueangsmart-back-office/frontend/src/app/dashboard/page.tsx) เพื่อให้การแสดงผล Mockup ตรงกัน 100%
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **UI Architecture:** Interactive State Syncing Pattern (Map <-> Table Hover State Binding) + Tailwind CSS Responsive Grid & SVG Vector Map Overlay
+- **Data Engine:** Mockup Dataset 30 Cities with Client-Side 3-Page Pagination Engine
+
+### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **TypeScript Typecheck:** `pnpm run typecheck` (`tsc --noEmit`) Passed 100%
+- **Build Verification:** `pnpm build` Passed 100% (Compiled with Turbopack in 1.5s)
+
+---
+
+## [1.0.0-alpha.29] - 2026-08-04
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Real Interactive Leaflet Map Engine Integration (`CityMapAndTable.tsx`):**
+  - ติดตั้งและตั้งค่า **Leaflet Map Engine** (`leaflet` & `@types/leaflet`) ร่วมกับ CartoDB Voyager High-Definition Raster Map Tiles
+  - แสดงแผนที่ประเทศไทยจริงพร้อมพิกัดภูมิศาสตร์จริง (`Latitude, Longitude`) ของเทศบาลเมืองทั้ง 30 รายการทั่วทุกภูมิภาคของไทย
+  - **Custom Map Pin Markers & Tooltip Popups:**
+    - หมุดเมืองเปิดใช้งาน (`#0284c7` Sky-600) และหมุดเมืองปิดใช้งาน (`#ef4444` Red-500)
+    - แสดง Leaflet Interactive Popup เมื่อเมาส์ชี้หมุดบนแผนที่ หรือ Hover แถวในตารางข้อมูลเทศบาลเมือง
+  - **Table-to-Map Interactive Hover Sync:** เมื่อนำเมาส์วางบนแถวเมืองในตาราง หมุดเมืองนั้นบนแผนที่จริงจะขยายขนาด (Scale 1.35x Highlight) พร้อมเปิดป๊อปอัพข้อมูลโดยอัตโนมัติ
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Map Provider & Engine:** Leaflet `v1.9.4` + CartoDB Voyager Vector Base Tile Layer
+- **Styling & CSS:** `@import "leaflet/dist/leaflet.css"` + Tailwind Custom CSS DivIcon Markers
+
+### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **TypeScript Typecheck:** `pnpm run typecheck` (`tsc --noEmit`) Passed 100%
+- **Build Verification:** `pnpm build` Passed 100% (Compiled with Turbopack in 1.5s)
+
+---
+
+## [1.0.0-alpha.30] - 2026-08-04
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Table Row Click Smooth FlyTo Map Centering (`CityMapAndTable.tsx`):**
+  - เพิ่มระบบ Event Handler เมื่อผู้ใช้คลิกเลือกบรรทัดเมืองในตาราง ให้แผนที่ซูมขยายและร่อนอนิเมชัน (`map.flyTo([lat, lng], 10)`) ย้ายตำแหน่งเมืองนั้นมาตรงกลางแผงแผนที่อย่างนุ่มนวล สมบูรณ์แบบ
+- **Standard Teardrop Pin Markers with Custom Colors:**
+  - เปลี่ยนรูปแบบหมุดแผนที่ให้เป็นหมุดทรงหยดน้ำมาตรฐาน (Teardrop Location Pin) พร้อมวงกลมเจาะรูตรงกลาง ตรงตามภาพดีไซน์ที่ 2
+  - **เปิดใช้งาน (Active):** กำหนดเป็น **สีเขียวสดใส** (`#10b981` Emerald Green)
+  - **ไม่ได้ใช้งาน (Inactive):** กำหนดเป็น **สีแดง** (`#ef4444` Coral Red)
+  - อัปเดตสัญลักษณ์ Legend ด้านบนแผนที่ และไอคอนเขียว/แดง ในตารางข้อมูลให้สอดคล้องกัน 100%
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Map Control Engine:** Leaflet `flyTo()` Viewport Animation Engine
+- **Vector Styling:** SVG Teardrop Path Overlay with Dynamic Theme Color Fill (`#10b981` / `#ef4444`)
+
+### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **TypeScript Typecheck:** `pnpm run typecheck` (`tsc --noEmit`) Passed 100%
+- **Build Verification:** `pnpm build` Passed 100% (Compiled with Turbopack in 1.6s)
+
+---
+
+## [1.0.0-alpha.31] - 2026-08-04
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Leaflet Map Popup Close Button Removal (`CityMapAndTable.tsx` & `globals.css`):**
+  - นำปุ่มกากบาทปิด (Close 'X' Button) ออกจาก Leaflet Popup รายละเอียดเมืองในแผนที่อย่างสมบูรณ์แบบ ทั้งระดับ Popup Configuration Options (`closeButton: false`) และระดับ Global CSS Rules (`.leaflet-container .leaflet-popup-close-button { display: none !important; }`)
+  - ให้ป๊อปอัพแสดงผลข้อมูลประชากรและผู้ใช้งานแบบ Clean, Modern Card Design ตรงตามบรีฟ 100%
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Leaflet Popup Options:** `{ closeButton: false }`
+- **Global CSS Utility:** `.leaflet-container .leaflet-popup-close-button` Override Rule in `globals.css`
+
+### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **TypeScript Typecheck:** `pnpm run typecheck` (`tsc --noEmit`) Passed 100%
+- **Build Verification:** `pnpm build` Passed 100% (Compiled with Turbopack in 1.6s)
+
+---
+
+## [1.0.0-alpha.32] - 2026-08-04
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Leaflet Popup Top Whitespace Removal (`globals.css` & `CityMapAndTable.tsx`):**
+  - ลบช่องว่างส่วนเกินด้านบนของการ์ดป๊อปอัพ (Top Whitespace Area) ออกอย่างสมบูรณ์แบบ
+  - กำหนด Global CSS Override: `.leaflet-container .leaflet-popup-content { margin: 0 !important; }` และปรับแต่ง Padding ของการ์ดป๊อปอัพให้กระชับ สมดุล พอดีกับเนื้อหา 100%
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Global CSS Utility:** Override Leaflet default 13px popup content margins and adjust card container paddings
+
+### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **TypeScript Typecheck:** `pnpm run typecheck` (`tsc --noEmit`) Passed 100%
+- **Build Verification:** `pnpm build` Passed 100% (Compiled with Turbopack in 1.7s)
+
+---
+
+## [1.0.0-alpha.33] - 2026-08-05
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Multi-City Management UI Redesign (`/cities`):**
+  - ปรับแต่งดีไซน์หน้าจัดการเมือง (`src/app/cities/page.tsx`) ให้ตรงตามภาพ Mockup (Image 1) 100%:
+    - **Header & Breadcrumb:** ปรับข้อความ "จัดการเมือง (Multi-City)" คำอธิบายระบบ และ Breadcrumb "Dashboard / จัดการเมือง (Multi-City)"
+    - **5 Top Metric Cards:** ปรับการ์ดสรุป 5 ใบ (จำนวนเมืองทั้งหมด 10 เมือง, เมืองที่เปิดใช้งาน, เมืองที่ไม่ได้ใช้งาน, จำนวนผู้ใช้งานทั้งหมด, จำนวนผู้ลงทะเบียนทั้งหมด) พร้อมไอคอนและแถบสี Accent ตามดีไซน์
+    - **Table Columns & Controls:** ปรับแต่งตารางแสดงรายการเมือง (ชื่อเมือง/ที่อยู่, สถานะใช้งาน/ไม่ใช้งาน pill badge, Module, River, Sense, ผู้ใช้งาน, ผู้ลงทะเบียน, ปุ่มจัดการ "รายละเอียด & สถิติ" และ "แก้ไขเมือง")
+    - **Create City Modal:** เพิ่มปุ่ม "+ เพิ่มเมือง" และ Modal Form สำหรับการสร้างเมืองใหม่ฝั่ง Frontend State Mockup
+    - **Pagination & Footer:** เพิ่มระบบเลือกจำนวนรายการต่อหน้า (Page size), ปุ่มเปลี่ยนหน้า (Pagination controls), และนับจำนวนรายการเมืองทั้งหมด (10 รายการ)
+  - อัปเดต `src/hooks/useCities.ts` เพื่อจัดการชุดข้อมูล Mockup 10 เมือง และรองรับ `createCity` state handler
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Frontend Architecture:** Reusable Component Pattern + Pure React State Management (Frontend-only mockup implementation)
+- **Strict Type-Safety & Code Quality:** Type-safe City interfaces, zero explicit `any`, zero redundant comments
+
+### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **TypeScript Typecheck:** `npx tsc --noEmit` Passed 100% (0 type errors)
+---
+
+## [1.0.0-alpha.34] - 2026-08-05
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **City Modules Count & Active Users Mapping Update (`/cities`):**
+  - ปรับตั้งค่าคอลัมน์ `Module` ให้แสดงผลเป็น **8** สำหรับทุกเมืองในตารางจัดการเมือง
+  - ปรับการแสดงผลคอลัมน์ `ผู้ใช้งาน` (Active Users) ให้คำนวณและแสดงค่าจำนวนผู้ใช้งานจริงโดยไม่เป็น 0 (No zero active users display)
+  - อัปเดต `src/hooks/useCities.ts` และ `src/app/cities/page.tsx` เพื่อ Map ค่าโมดูล 8 และคำนวณผู้ใช้งานที่มีผลลัพธ์มากกว่า 0 สำหรับทุกเมืองที่ดึงจาก API หรือ Mockup
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Frontend Mapping Strategy:** Safe Data Transformation Layerใน Custom Hook & View Renderer
+---
+
+## [1.0.0-alpha.35] - 2026-08-05
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Registered Users Derived From Active Users Update (`/cities`):**
+  - ปรับการคำนวณและแสดงผลคอลัมน์ `ผู้ลงทะเบียน` (Registered Users) ให้คำนวณสอดคล้องและมาจากยอด `ผู้ใช้งาน` (Active Users) โดยตรง
+  - อัปเดต `src/hooks/useCities.ts` และ `src/app/cities/page.tsx` เพื่อปรับแต่ง `registered_users_count` และ `totalRegistered` ให้เชื่อมโยงกับยอดผู้ใช้งานอย่างสมบูรณ์
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Frontend State Calculation:** Derived State Formula (`registered = Math.round(active * 1.45)`)
+
+---
+
+## [1.0.0-alpha.36] - 2026-08-05
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **20 Municipalities Mockup Expansion & Modest User Stats Update (`/cities`):**
+  - เพิ่มรายชื่อเทศบาลจำลองเพิ่มอีก 10 เมือง รวมเป็นทั้งหมด **20 เมือง** ในชุดข้อมูล Mockup
+  - ปรับยอดผู้ใช้งาน (Active Users) และยอดผู้ลงทะเบียน (Registered Users) ของทุกเมืองให้เป็นตัวเลขขนาดพอเหมาะ (Modest realistic counts เช่น 31 ถึง 520 คน)
+  - อัปเดตการแสดงผลการ์ดสรุปสถิติ 5 ใบด้านบน (จำนวนเมืองทั้งหมด 20 เมือง, เปิดใช้งาน 18 เมือง (90%), ปิดใช้งาน 2 เมือง (10%), รวมผู้ใช้งาน 5,218 คน, รวมผู้ลงทะเบียน 7,841 คน) ให้ถูกต้องตรงกันแบบไดนามิก 100%
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Frontend State Data Expansion:** Pure React State Layer + Dynamic Metric Calculations
+
+---
+
+## [1.0.0-alpha.37] - 2026-08-05
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **River & Sense Sensors Device Count Mapping Update (`/cities`):**
+  - เปลี่ยนการแสดงผลคอลัมน์ `River` และ `Sense` จากข้อความตัวอักษรเป็นตัวเลขจำนวนอุปกรณ์ที่ติดตั้งสุ่ม/กำหนดในช่วง **2 ถึง 20** (หรือ `-` สำหรับเมืองที่ไม่มีเซนเซอร์)
+  - อัปเดต `src/hooks/useCities.ts` และ `src/app/cities/page.tsx` เพื่อรองรับการแสดงผลและปรับปรุง Modal Form สำหรับสร้าง/แก้ไขจำนวนอุปกรณ์ติดตั้ง
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Frontend Metric Transformation:** Dynamic Type Definition (`string | number`) + Sensor Device Count Mapping
+
+---
+
+## [1.0.0-alpha.38] - 2026-08-05
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **City Creation & Edit Modal Form Redesign (`CityFormModal.tsx` matching Image 2):**
+  - สร้างคอมโพเนนต์ Reusable `CityFormModal.tsx` ใน `src/components/cities/` ดีไซน์ใหม่ตรงตามภาพ Mockup (Image 2) 100%
+  - **Upload Cards:** กล่องอัปโหลดโลโก้เทศบาลและอัปโหลดตรายาง (สำหรับใบเสร็จ) ดีไซน์ขอบประพรีเมียม
+  - **Form Fields:** รองรับชื่อเทศบาล (ภาษาไทย/อังกฤษ), ที่อยู่ติดต่อ (ภาษาไทย/อังกฤษ), เบอร์ติดต่อ, สถานะเมือง (Status active/inactive dot), และพิกัดละติจูด/ลองจิจูด พร้อมพรีวิวแผนที่และช่องค้นหา
+  - **Modules Management Panel:** แผงจัดการโมดูลทั้งหมดครบทุกสัดส่วน:
+    - *โมดูลหลัก (พื้นฐาน):* ผู้ป่วยติดเตียง, ผู้สูงอายุและผู้พิการ, จ่ายภาษีออนไลน์, ยืนยันตัวตน, ประชาสัมพันธ์, ศูนย์ร้องทุกข์ร้องเรียน, ร้องทุกข์ร้องเรียน, สุขภาพสุนัขและแมว, การแจ้งเตือน (Toggle switches)
+    - *โมดูลหลัก (เลือกระบบ):* ค่าธรรมเนียมขยะ (Radio ระบบเก่า / ระบบใหม่ + Toggle switch)
+    - *โมดูลเสริม:* กล้องวงจรปิด, ข้อมูลระดับน้ำ, ฟ้าฝน (พร้อมช่อง UUID Optional)
+  - **Shared Modal Architecture:** ใช้งานร่วมกันทั้งโหมดสร้างเมืองใหม่ (`+ สร้างเมือง`) และโหมดแก้ไขเมือง (`บันทึกการเปลี่ยนแปลง`)
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Frontend Architecture:** Reusable Component Pattern + Pure React State Management + Lucide Icons System
+- **Strict Type-Safety & Code Quality:** Type-safe props & state interfaces, zero explicit `any`, zero redundant comments
+
+---
+
+## [1.0.0-alpha.39] - 2026-08-05
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Custom ToggleSwitches & Split Card Modules Redesign (`CityFormModal.tsx`):**
+  - เปลี่ยนจาก Checkbox แบบดั้งเดิมเป็น **Custom Toggle Switch (สวิตช์เปิด-ปิดสีฟ้าทรงแคปซูล)** ดีไซน์พรีเมียมตามแบบภาพ 2 100%
+  - ปรับการจัดวางการ์ดโมดูลออกเป็น 2 การ์ดย่อยซ้าย-ขวาสำหรับ `โมดูลหลัก (พื้นฐาน)` และ `โมดูลเสริม`
+  - เพิ่มช่องกรอก **UUID สำหรับโมดูลฟ้าฝน** พร้อมพรีวิวค่า Test UUID (`550e8400-e29b-41d4-a716-446655440000`) ตรงตามแบบภาพ 2
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Custom ToggleSwitch Component:** Pure Tailwind CSS Animated Switch Control
+- **Strict Code Governance:** Clean architecture, zero redundant comments, 100% type safety
+
+### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **TypeScript Typecheck:** `npx tsc --noEmit` Passed 100% (0 type errors)
+
+---
+
+## [1.0.0-alpha.40] - 2026-08-07
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **City Detail & Statistics Page Redesign (`src/app/cities/[id]/page.tsx` matching DrawIO Mockup):**
+  - พัฒนาหน้ารายละเอียดเมืองและสถิติการใช้งานระบบตามแบบ DrawIO Mockup 100%
+  - **Top Action Bar:** แสดง Badge `UAT Environment Connected`, ปุ่มย้อนกลับไปหน้ารายการเมือง, Date Filter Selector (`1 ม.ค. 2569 - 31 ธ.ค. 2569`), และปุ่มดาวน์โหลดรายงาน (`ส่งออกรายงาน`)
+  - **City Banner Header:** แสดงตราโลโก้/สัญลักษณ์เทศบาล, ชื่อภาษาไทย/อังกฤษ, ที่อยู่ติดต่อ, เบอร์โทรศัพท์, พิกัด GPS ละติจูด/ลองจิจูด, ป้ายสถานะ `เปิดใช้งาน`, และปุ่ม `แก้ไขเมือง` (เปิด `CityFormModal`)
+  - **Top KPI Cards (3 Cards):** ผู้ลงทะเบียน (User: 4,540 คน), ผู้ใช้งาน (User Active: 865 คน / 82.05%), และผู้ดูแลระบบ (Admin: 28 คน)
+  - **โมดูลหลัก (11 Cards):** ผู้สูงอายุและผู้พิการ, ผู้ป่วยติดเตียง, ศูนย์ร้องทุกข์ร้องเรียน, ร้องทุกข์ร้องเรียน, ภาษี, สัตว์เลี้ยง, ยืนยันตัวตน, ประชาสัมพันธ์, การแจ้งเตือน, ค่าธรรมเนียมขยะ (พร้อม Badge `ระบบใหม่`), และกล้องวงจรปิด CCTV (Badge `ปิดใช้งาน`)
+  - **โมดูลเพิ่มเติม (2 Cards):** ระบบตรวจวัดระดับน้ำ (River) และระบบตรวจวัดสภาพอากาศ (Sence) พร้อมตัวเลขสถานีออนไลน์/ออฟไลน์
+  - **Mockup Interactive Functions:** ปุ่ม `แก้ไขเมือง` เชื่อมต่อกับ `CityFormModal` ใน Edit Mode พร้อม `SuccessModal` แจ้งเตือน และปุ่ม `ส่งออกรายงาน` ดาวน์โหลดไฟล์ CSV Mockup
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Frontend Architecture:** Reusable Component Integration + Next.js App Router Dynamic Page (`app/cities/[id]/page.tsx`)
+- **Theme & Styling:** Tailwind CSS Clean Enterprise Corporate Design Tokens (MueangSmart Design System)
+- **Strict Type Safety:** Pure React Hooks, 0 explicit `any`, zero redundant comments
+
+### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **TypeScript Typecheck:** `pnpm typecheck` Passed 100% (0 type errors)
+- **Next.js Production Build:** `pnpm build` Passed 100% (Compiled and generated static/dynamic routes successfully)
+
+---
+
+## [1.0.0-alpha.41] - 2026-08-09
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Module Management Page & Navigation Subsystem (`src/app/modules/page.tsx` matching Image 1 Design):**
+  - เพิ่มเมนู `จัดการโมดูล (Module)` บน Sidebar เส้นทาง `/modules` ด้วยไอคอน `LayoutGrid` วางตำแหน่งต่อจาก `จัดการเมือง (Multi-City)` ให้กลมกลืนตามสไตล์ MueangSmart Design System
+  - **Type Safety & Custom Hook Architecture:**
+    - สร้าง `src/types/module.ts` กำหนด Interface `SystemModule` ปราศจาก `any` 100%
+    - สร้าง `src/hooks/useModules.ts` จัดเก็บ Mock Data โมดูลครบถ้วนทั้ง 14 รายการ ถอดแบบจากดีไซน์ (ภาพที่ 1) 100%
+  - **Data Table & Fixed Column Widths:**
+    - ดีไซน์ตารางข้อมูลด้วย `table-fixed` กำหนดความกว้างคอลัมน์คงที่ (10 คอลัมน์โดยนำคอลัมน์ `ลำดับ` ออกเพื่อใช้คอลัมน์ `เรียงลำดับ (Sidebar)` เป็นหลักแทน) และกำหนดความสูงแถวคงที่เท่ากันทุกบรรทัด `h-[48px]` (`py-2` ร่วมกับปุ่มจัดการ `h-8`) พร้อมระบบเติมบรรทัดว่างอัตโนมัติ (Placeholder Rows) ให้ความสูงรวมคงที่ 10 แถวเสมอ ป้องกันแถบ Pagination ขยับขึ้นลงขณะสลับหน้า
+    - แสดงป้ายสถานะ Pill Badges ซอฟต์โทน: `เปิด` (`bg-emerald-50 text-emerald-600`) และ `ปิด` (`bg-rose-50 text-rose-500`)
+    - แสดงปุ่มแก้ไข (Edit Button) ดีไซน์ Pill Button สีขาวขอบเทาอ่อน พร้อมไอคอนและข้อความ `แก้ไขโมดูล` (`[SquarePen] แก้ไขโมดูล`) ถอดแบบตรงตามภาพตัวอย่าง 100%
+  - **Module Form Modal Subsystem (`src/components/modules/ModuleFormModal.tsx`):**
+    - พัฒนา Reusable Modal สำหรับสร้างและแก้ไขข้อมูลโมดูล รองรับทั้งโหมด `เพิ่มโมดูล (Module)` และ `แก้ไขโมดูล (Module)` ตามแบบภาพออกแบบ 100%
+    - **Form Inputs & Layout:** แถวที่ 1 `เรียงลำดับ (Sidebar)` *, แถวที่ 2 `ชื่อโมดูล (ภาษาไทย/ภาษาอังกฤษ)` *, แถวที่ 3 `Dashboard (ไทย/อังกฤษ)` *
+    - **Interactive Custom Toggle Switches:** การ์ดสวิตช์เปิด-ปิดสำหรับ `ยืนยันตัวตน`, `กอง/หน่วยงาน`, `เฉพาะแอดมิน`, และ `Dashboard` ในดีไซน์ MueangSmart Theme (`sky-600` active / `slate-300` inactive)
+    - **State Management & 100% Mock Data Synchronization:** ปรับปรุงค่าสถานะป้ายเปิด/ปิดของทั้ง 14 โมดูลใน `useModules.ts` ให้ตรงถอดแบบจากภาพตัวอย่างล่าสุด 100% (รวมถึงรายการที่ 1: `ปิด, เปิด, ปิด, เปิด`, รายการที่ 8: `ปิด, เปิด, เปิด, ปิด`, รายการที่ 10: `ปิด, เปิด, เปิด, ปิด` และรายการที่ 12: `ปิด, เปิด, ปิด, เปิด`)
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Frontend Layer:** Next.js 16 App Router, Pure React Hooks (`useModules`), Lucide Icons (`LayoutGrid`, `Search`, `Plus`, `SquarePen`)
+- **Styling Tokens:** MueangSmart Enterprise Design System (Tailwind CSS, Soft Tint Status Badges)
+- **Strict Governance:** Clean code structure, 0 explicit `any`, zero redundant comments, clean separation of concerns
+
+### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **TypeScript Typecheck:** `pnpm typecheck` Passed 100% (0 errors)
+- **Next.js Production Build:** `pnpm build` Passed 100% (Compiled `/modules` static page successfully)
+
+---
+
+## [1.0.0-alpha.42] - 2026-08-10
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Table Edge-to-Edge Layout & Header Alignment:**
+  - ปรับดีไซน์ขอบตารางในหน้าจัดการเมือง (`/cities`) และหน้า Dashboard ให้ขยายเต็มขอบการ์ด (Edge-to-Edge) ไร้ช่องว่างขอบซ้าย-ขวา สอดคล้องตามมาตรฐานเดียวกับหน้าจัดการโมดูล (`/modules`) โดยคงตำแหน่งและระยะ Padding ของแถบ Pagination ไว้อย่างถูกต้อง
+  - ปรับแต่งหัวตาราง (Table Header `thead`) ให้ใช้โทนสี `bg-slate-50/80 border-b border-slate-200 text-slate-700 text-xs font-bold` พร้อมระบบคลิกเพื่อเรียงลำดับข้อมูล (Sorting) โดยเริ่มต้นจากเรียงมากไปหาน้อย (`desc`) ก่อนเป็นลำดับแรก
+  - พัฒนา Safe Comparator Handling (`String(aVal).localeCompare(String(bVal), "th", { numeric: true, sensitivity: "base" })`) ป้องกันรันไทม์แครชจากการเปรียบเทียบชนิดข้อมูลที่หลากหลาย (Number, String, Boolean, Null/Undefined)
+- **Table Fixed Column Widths & Overflow Protection:**
+  - กำหนดโครงสร้าง `<colgroup>` และ `table-fixed` ล็อคขนาดความกว้างของคอลัมน์ตารางอย่างถาวรทั้ง 3 หน้าหลัก (Dashboard, จัดการเมือง, จัดการโมดูล) ป้องกันปัญหาตารางขยับเปลี่ยนขนาดขณะเปลี่ยนหน้า (Pagination) หรือเรียงลำดับ (Sorting)
+  - จัดรูปแบบหัวตารางภาษาไทยแบบตัดคำ 2 บรรทัด (`ยืนยัน\nตัวตน`, `กอง/\nหน่วยงาน`, `เฉพาะ\nแอดมิน`) พร้อมขยายความกว้างขั้นต่ำของตาราง (`min-w-[1150px]`) ป้องกันปัญหาตัวอักษรจมหายและปุ่มแก้ไข (`[แก้ไขโมดูล]`) ซ้อนทับกับป้าย Badge สถานะ
+  - เพิ่มขนาดฟอนต์คอลัมน์ `ชื่อโมดูล (ภาษาไทย)` ในหน้าจัดการโมดูลเป็น **14px** (`text-sm`) ตามความต้องการ
+  - ปรับสไตล์ช่องค้นหาหน้าจัดการโมดูลให้เป็นมาตรฐานเดียวกันกับหน้าจัดการเมือง (`bg-slate-50 border border-slate-300 rounded-xl`) พร้อมไอคอนแว่นขยาย (`Search`)
+- **Dashboard Map & Hover Delay Timer Subsystem:**
+  - ปรับแต่งป้าย Legend บนแผนที่หน้า Dashboard โดยถอดเงา (`shadow-md`) ออกเพื่อความกลมกลืนเนียนไปกับพื้นหลังแผนที่ พร้อมเพิ่มตัวเลขแสดงจำนวนเมืองเปิดใช้งานและไม่ได้ใช้งาน
+  - เพิ่มระบบหน่วงเวลา 2 วินาที (`hoverTimerRef` 2000ms delay) เมื่อนำเมาส์ไปชี้ที่แถวเมืองในตาราง ป้องกันแผนที่ขยับกระตุกทันทีขณะเลื่อนเมาส์ผ่านตาราง และจะเลื่อนโฟกัส (Fly/Pan) ไปยังตำแหน่งเมืองบนแผนที่เมื่อวางเมาส์แช่ครบ 2 วินาที หรือเมื่อกดคลิกแถว
+  - เพิ่มปุ่มลอยควบคุมแผนที่บริเวณมุมขวาล่าง (`bottom-right`): ปุ่มซูมเข้า (`[+]`), ปุ่มซูมออก (`[-]`) และปุ่มรีเซ็ตมุมมองประเทศไทย (`[RotateCcw]`) ดีไซน์ Frosted Glass กลมกลืนสวยงามตาม MueangSmart Design System
+- **Responsive Metric Cards & Sidebar Cleanup:**
+  - ปรับปรุงการ์ดสรุปสถิติ (`MetricCard`) ให้รองรับ Responsive sizing (ขนาดไอคอน `w-3.5 h-3.5` ถึง `w-5 h-5` พร้อม Padding กระทัดรัด `p-1.5` ถึง `p-2.5`) และใส่ `whitespace-nowrap` ป้องกันตัวเลขสถิติ (`52,185`, `318,742`) ถูกตัดขาดหรือแสดงจุดไข่ปลา
+  - ขยายความกว้าง Sidebar เป็น **`288px`** (`w-72`) ป้องกันข้อความเมนูตกบรรทัด
+  - ลบเมนูและเส้นทางที่ไม่ได้ใช้ออกจาก Sidebar: `การวิเคราะห์กลุ่มเปราะบาง` (`/analytics/vulnerable`) และ `ระบบเพิ่มเมือง (Onboarding)` (`/cities/onboarding`) พร้อมลบไฟล์ Mockup `/cities/onboarding` ออกจากโปรเจกต์อย่างเป็นระบบ (Clean Code)
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Frontend Architecture:** Reusable Responsive Components (`MetricCard`, `Sidebar`, `CityMapAndTable`), Leaflet Map Syncing with Debounced Hover Timers
+- **Strict Clean Code:** Zero redundant comments, 0 explicit `any`, zero dead code/mockup routes
+
+### 3. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **TypeScript Typecheck:** `pnpm typecheck` Passed 100% (0 errors)
+- **Next.js Production Build:** `pnpm build` Passed 100% (Compiled cleanly, generated static & dynamic routes successfully)
 

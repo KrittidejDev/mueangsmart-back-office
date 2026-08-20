@@ -18,7 +18,6 @@ export function ProtectedRoute({ children, requiredPermission, superAdminOnly }:
   const router = useRouter();
   const pathname = usePathname();
   const { isAuthenticated, user, hasHydrated, initAuth } = useAuthStore();
-  const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
     initAuth();
@@ -40,31 +39,34 @@ export function ProtectedRoute({ children, requiredPermission, superAdminOnly }:
           roleName = JSON.parse(storedUser).roleName;
         }
       } catch {
-        // ignore JSON parse error
       }
     }
 
-    // SuperAdmin Only Check
     if (superAdminOnly && roleName !== "SuperAdmin") {
       router.push("/403");
       return;
     }
 
-    // Specific Permission Check
     if (requiredPermission) {
       const hasPerm = user?.permissions?.some(
         (p) => p.resource === requiredPermission.resource && p.action === requiredPermission.action
       );
       if (!hasPerm && roleName !== "SuperAdmin") {
         router.push("/403");
-        return;
       }
     }
-
-    setAuthorized(true);
   }, [isAuthenticated, user, hasHydrated, router, pathname, requiredPermission, superAdminOnly]);
 
-  if (!authorized) {
+  const isAuthorized = Boolean(
+    hasHydrated &&
+    isAuthenticated &&
+    (!superAdminOnly || user?.roleName === "SuperAdmin") &&
+    (!requiredPermission || user?.roleName === "SuperAdmin" || user?.permissions?.some(
+      (p) => p.resource === requiredPermission.resource && p.action === requiredPermission.action
+    ))
+  );
+
+  if (!isAuthorized) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center text-slate-500 font-medium flex items-center gap-2">

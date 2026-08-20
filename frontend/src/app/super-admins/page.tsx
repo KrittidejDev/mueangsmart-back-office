@@ -80,9 +80,8 @@ export default function SuperAdminsPage() {
           <main className="p-4 sm:p-8 space-y-6 sm:space-y-8 flex-1">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
-                  <ShieldCheck className="w-6 h-6 sm:w-7 sm:h-7 text-sky-600" />
-                  <span>ระบบจัดการผู้ใช้งาน SuperAdmin Back Office</span>
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight">
+                  ระบบจัดการผู้ใช้งาน SuperAdmin Back Office
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-500 mt-1">
                   สร้าง กำหนดบทบาทสิทธิ 3 ระดับ (SuperAdmin / Admin / ผู้บริหาร) สำหรับผู้ใช้งานระบบบริหารจัดการเมือง
@@ -91,7 +90,7 @@ export default function SuperAdminsPage() {
 
               <button
                 onClick={handleOpenModal}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-sky-600/20 transition-all cursor-pointer whitespace-nowrap self-start sm:self-auto"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-brand-primary hover:bg-brand-hover text-white rounded-xl text-xs font-semibold shadow-md shadow-brand-primary/20 transition-all cursor-pointer whitespace-nowrap self-start sm:self-auto"
               >
                 <UserPlus className="w-4 h-4" />
                 <span>เพิ่มผู้ใช้งานใหม่</span>
@@ -101,7 +100,7 @@ export default function SuperAdminsPage() {
             {/* Users Table */}
             <div className="ms-card p-4 sm:p-6 rounded-2xl space-y-4">
               <h2 className="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
-                <Users className="w-5 h-5 text-sky-600" />
+                <Users className="w-5 h-5 text-brand-primary" />
                 <span>รายชื่อผู้ใช้งานผู้ดูแลระบบทั้งหมด ({users.length})</span>
               </h2>
 
@@ -112,7 +111,7 @@ export default function SuperAdminsPage() {
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm text-slate-700 min-w-[700px]">
-                    <thead className="text-xs uppercase bg-slate-100 text-slate-600 border-b border-slate-200">
+                    <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-700 text-xs font-bold">
                       <tr>
                         <th className="py-3.5 px-4 font-bold">ชื่อ - นามสกุล / ชื่อผู้ใช้</th>
                         <th className="py-3.5 px-4 font-bold">อีเมล</th>
@@ -139,7 +138,9 @@ export default function SuperAdminsPage() {
                                     ? "info"
                                     : u.role_name === "Admin"
                                     ? "success"
-                                    : "warning"
+                                    : u.role_name === "Executive" || u.role_name === "ผู้บริหาร"
+                                    ? "warning"
+                                    : "neutral"
                                 }
                               >
                                 {u.role_name}
@@ -198,7 +199,7 @@ export default function SuperAdminsPage() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="เช่น admin_city01"
-              className="w-full bg-slate-50 border border-slate-300 focus:border-sky-500 focus:bg-white rounded-xl py-2 px-3 text-sm text-slate-900 outline-none transition-all"
+              className="w-full bg-slate-50 border border-slate-300 focus:border-brand-primary focus:bg-white rounded-xl py-2 px-3 text-sm text-slate-900 outline-none transition-all"
             />
           </div>
 
@@ -210,7 +211,7 @@ export default function SuperAdminsPage() {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="เช่น สมชาย ใจดี"
-              className="w-full bg-slate-50 border border-slate-300 focus:border-sky-500 focus:bg-white rounded-xl py-2 px-3 text-sm text-slate-900 outline-none transition-all"
+              className="w-full bg-slate-50 border border-slate-300 focus:border-brand-primary focus:bg-white rounded-xl py-2 px-3 text-sm text-slate-900 outline-none transition-all"
             />
           </div>
 
@@ -222,7 +223,7 @@ export default function SuperAdminsPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="admin@mueangsmart.go.th"
-              className="w-full bg-slate-50 border border-slate-300 focus:border-sky-500 focus:bg-white rounded-xl py-2 px-3 text-sm text-slate-900 outline-none transition-all"
+              className="w-full bg-slate-50 border border-slate-300 focus:border-brand-primary focus:bg-white rounded-xl py-2 px-3 text-sm text-slate-900 outline-none transition-all"
             />
           </div>
 
@@ -234,7 +235,7 @@ export default function SuperAdminsPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full bg-slate-50 border border-slate-300 focus:border-sky-500 focus:bg-white rounded-xl py-2 px-3 text-sm text-slate-900 outline-none transition-all"
+              className="w-full bg-slate-50 border border-slate-300 focus:border-brand-primary focus:bg-white rounded-xl py-2 px-3 text-sm text-slate-900 outline-none transition-all"
             />
           </div>
 
@@ -243,7 +244,7 @@ export default function SuperAdminsPage() {
             <select
               value={roleId}
               onChange={(e) => setRoleId(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-300 focus:border-sky-500 focus:bg-white rounded-xl py-2 px-3 text-sm text-slate-900 outline-none transition-all"
+              className="w-full bg-slate-50 border border-slate-300 focus:border-brand-primary focus:bg-white rounded-xl py-2 px-3 text-sm text-slate-900 outline-none transition-all"
             >
               {roles.map((r) => (
                 <option key={r.Id} value={r.Id}>
@@ -257,14 +258,14 @@ export default function SuperAdminsPage() {
             <button
               type="button"
               onClick={() => setModalOpen(false)}
-              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-all cursor-pointer"
+              className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer"
             >
               ยกเลิก
             </button>
             <button
               type="submit"
               disabled={creating}
-              className="px-5 py-2 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-sky-600/20 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="px-6 py-2.5 bg-brand-primary hover:bg-brand-hover active:bg-brand-hover text-white rounded-xl text-xs sm:text-sm font-semibold shadow-md shadow-brand-primary/20 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               {creating ? (
                 <>
