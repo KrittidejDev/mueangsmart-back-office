@@ -153,7 +153,7 @@ export default function ModulesPage() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="ค้นหาโมดูล"
-                    className="w-full bg-slate-50 border border-slate-300 focus:border-sky-500 focus:bg-white rounded-xl py-2 px-3 pr-9 text-xs sm:text-sm text-slate-900 outline-none transition-all"
+                    className="w-full bg-slate-50 border border-slate-300 focus:border-brand-primary focus:bg-white rounded-xl py-2 px-3 pr-9 text-xs sm:text-sm text-slate-900 outline-none transition-all"
                   />
                   <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
@@ -161,7 +161,7 @@ export default function ModulesPage() {
                 <button
                   type="button"
                   onClick={handleOpenCreateModal}
-                  className="px-4 py-2 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                  className="px-4 py-2 bg-brand-primary hover:bg-brand-hover text-white rounded-xl text-xs sm:text-sm font-semibold shadow-md shadow-brand-primary/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
                 >
                   <Plus className="w-4 h-4" />
                   <span>เพิ่มโมดูล</span>
@@ -361,7 +361,7 @@ export default function ModulesPage() {
                       <select
                         value={pageSize}
                         onChange={(e) => setPageSize(Number(e.target.value))}
-                        className="appearance-none bg-white border border-slate-200 rounded-lg pl-3 pr-8 py-1.5 text-xs text-slate-700 font-semibold focus:outline-none focus:border-sky-500 cursor-pointer shadow-2xs"
+                        className="appearance-none bg-white border border-slate-200 rounded-lg pl-3 pr-8 py-1.5 text-xs text-slate-700 font-semibold focus:outline-none focus:border-brand-primary cursor-pointer shadow-2xs"
                       >
                         <option value={10}>10</option>
                         <option value={25}>25</option>
@@ -387,9 +387,9 @@ export default function ModulesPage() {
                         key={page}
                         type="button"
                         onClick={() => setCurrentPage(page)}
-                        className={`w-8 h-8 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer shadow-2xs ${
+                        className={`w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center transition-all cursor-pointer shadow-2xs ${
                           currentPage === page
-                            ? "bg-white border-2 border-sky-500 text-sky-600"
+                            ? "bg-brand-primary text-white shadow-sm"
                             : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
                         }`}
                       >

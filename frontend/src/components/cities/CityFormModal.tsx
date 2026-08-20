@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Image from "next/image";
+import type * as L from "leaflet";
 import { 
   X, 
   UploadCloud, 
@@ -44,7 +46,7 @@ function ToggleSwitch({ checked, onChange }: ToggleSwitchProps) {
       type="button"
       onClick={() => onChange(!checked)}
       className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-        checked ? "bg-sky-600" : "bg-slate-300"
+        checked ? "bg-brand-primary" : "bg-slate-300"
       }`}
     >
       <span
@@ -56,30 +58,44 @@ function ToggleSwitch({ checked, onChange }: ToggleSwitchProps) {
   );
 }
 
-export function CityFormModal({
-  isOpen,
+function CityFormModalContent({
   onClose,
   mode,
   cityData,
   onSave,
-}: CityFormModalProps) {
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [stampFile, setStampFile] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string>("");
-  const [stampPreview, setStampPreview] = useState<string>("");
+}: Omit<CityFormModalProps, "isOpen">) {
+  const isEdit = mode === "edit" && !!cityData;
 
-  const [nameTh, setNameTh] = useState("");
-  const [nameEn, setNameEn] = useState("");
-  const [addressTh, setAddressTh] = useState("");
-  const [addressEn, setAddressEn] = useState("");
-  const [phone, setPhone] = useState("");
-  const [status, setStatus] = useState("Active");
-  const [latitude, setLatitude] = useState<number>(13.7563);
-  const [longitude, setLongitude] = useState<number>(100.5018);
+  const [logoPreview, setLogoPreview] = useState<string>(() =>
+    isEdit ? cityData.logo_url || (cityData.name_th?.includes("ฟ้าฝน") ? "/images/logo_fahfon.jpeg" : "") : ""
+  );
+  const [stampPreview, setStampPreview] = useState<string>(() =>
+    isEdit ? cityData.stamp_url || (cityData.name_th?.includes("ฟ้าฝน") ? "/images/stamp_fahfon.png" : "") : ""
+  );
+
+  const [nameTh, setNameTh] = useState(() => (isEdit ? cityData.name_th || "" : ""));
+  const [nameEn, setNameEn] = useState(() => (isEdit ? cityData.name_en || "" : ""));
+  const [addressTh, setAddressTh] = useState(() => (isEdit ? cityData.address_th || "" : ""));
+  const [addressEn, setAddressEn] = useState(() => (isEdit ? cityData.address_en || "" : ""));
+  const [phone, setPhone] = useState(() =>
+    isEdit ? cityData.phone || "02-123-4567, 02-515-2458" : ""
+  );
+  const [status, setStatus] = useState(() =>
+    isEdit
+      ? cityData.status === "ไม่ใช้งาน" || cityData.status === "Inactive"
+        ? "Inactive"
+        : "Active"
+      : "Active"
+  );
+  const initialLat = isEdit ? cityData.latitude || 13.7563 : 13.7563;
+  const initialLng = isEdit ? cityData.longitude || 100.5018 : 100.5018;
+
+  const [latitude, setLatitude] = useState<number>(initialLat);
+  const [longitude, setLongitude] = useState<number>(initialLng);
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markerRef = useRef<any>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
 
   const [mapSearch, setMapSearch] = useState("");
   const [searchResults, setSearchResults] = useState<Array<{ display_name: string; lat: string; lon: string }>>([]);
@@ -109,101 +125,23 @@ export function CityFormModal({
   const [formError, setFormError] = useState("");
 
   useEffect(() => {
-    if (!isOpen) return;
-
-    if (mode === "edit" && cityData) {
-      setNameTh(cityData.name_th || "");
-      setNameEn(cityData.name_en || "");
-      setAddressTh(cityData.address_th || "");
-      setAddressEn(cityData.address_en || "");
-      setPhone(cityData.phone || "02-123-4567, 02-515-2458");
-      setStatus(cityData.status === "ไม่ใช้งาน" || cityData.status === "Inactive" ? "Inactive" : "Active");
-      setLatitude(cityData.latitude || 13.7563);
-      setLongitude(cityData.longitude || 100.5018);
-
-      setModBedridden(true);
-      setModElderlyDisabled(true);
-      setModOnlineTax(true);
-      setModIdentityVerification(true);
-      setModPublicRelations(true);
-      setModComplaintCenter(true);
-      setModComplaints(true);
-      setModPetHealth(true);
-      setModNotifications(true);
-      setModWasteFee(true);
-      setModWasteFeeSystem("old");
-      setModCctv(false);
-      setModWaterLevel(false);
-      setModFahFon(false);
-      setModFahFonUuid("550e8400-e29b-41d4-a716-446655440000");
-    } else {
-      setNameTh("");
-      setNameEn("");
-      setAddressTh("");
-      setAddressEn("");
-      setPhone("");
-      setStatus("Active");
-      setLatitude(13.7563);
-      setLongitude(100.5018);
-      setLogoFile(null);
-      setStampFile(null);
-      setLogoPreview("");
-      setStampPreview("");
-
-      setModBedridden(true);
-      setModElderlyDisabled(true);
-      setModOnlineTax(true);
-      setModIdentityVerification(true);
-      setModPublicRelations(true);
-      setModComplaintCenter(true);
-      setModComplaints(true);
-      setModPetHealth(true);
-      setModNotifications(true);
-      setModWasteFee(true);
-      setModWasteFeeSystem("old");
-      setModCctv(false);
-      setModWaterLevel(false);
-      setModFahFon(false);
-      setModFahFonUuid("550e8400-e29b-41d4-a716-446655440000");
-    }
-    setMapSearch("");
-    setSearchResults([]);
-    setSearchError("");
-    setFormError("");
-  }, [isOpen, mode, cityData]);
-
-  // Initialize Real Leaflet Map inside Modal
-  useEffect(() => {
-    if (!isOpen) return;
-
     let isMounted = true;
 
     async function initMap() {
       if (!mapContainerRef.current) return;
 
-      const targetLat = cityData?.latitude ?? latitude ?? 13.7563;
-      const targetLng = cityData?.longitude ?? longitude ?? 100.5018;
-
-      if (mapInstanceRef.current) {
-        if (markerRef.current) {
-          markerRef.current.setLatLng([targetLat, targetLng]);
-        }
-        mapInstanceRef.current.setView([targetLat, targetLng], 13);
-        mapInstanceRef.current.invalidateSize();
-        return;
-      }
-
-      const L = (await import("leaflet")).default;
+      const leafletModule = await import("leaflet");
+      const Leaflet = leafletModule.default;
       if (!isMounted || !mapContainerRef.current) return;
 
-      const map = L.map(mapContainerRef.current, {
-        center: [targetLat, targetLng],
+      const map = Leaflet.map(mapContainerRef.current, {
+        center: [initialLat, initialLng],
         zoom: 13,
         zoomControl: false,
         attributionControl: false,
       });
 
-      L.tileLayer(
+      Leaflet.tileLayer(
         "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
         {
           attribution:
@@ -216,19 +154,19 @@ export function CityFormModal({
       const customHtml = `
         <div class="relative transition-all duration-200 cursor-pointer flex items-center justify-center filter drop-shadow-md">
           <svg width="28" height="36" viewBox="0 0 24 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 0C5.37 0 0 5.37 0 12C0 21 12 32 12 32C12 32 24 21 24 12C24 5.37 18.63 0 12 0ZM12 16C9.79 16 8 14.21 8 12C8 9.79 9.79 8 12 8C14.21 8 16 9.79 16 12C16 14.21 14.21 16 12 16Z" fill="#0284c7"/>
+            <path d="M12 0C5.37 0 0 5.37 0 12C0 21 12 32 12 32C12 32 24 21 24 12C24 5.37 18.63 0 12 0ZM12 16C9.79 16 8 14.21 8 12C8 9.79 9.79 8 12 8C14.21 8 16 9.79 16 12C16 14.21 14.21 16 12 16Z" fill="#210e79"/>
           </svg>
         </div>
       `;
 
-      const customIcon = L.divIcon({
+      const customIcon = Leaflet.divIcon({
         html: customHtml,
         className: "custom-modal-pin-icon",
         iconSize: [28, 36],
         iconAnchor: [14, 36],
       });
 
-      const marker = L.marker([targetLat, targetLng], {
+      const marker = Leaflet.marker([initialLat, initialLng], {
         icon: customIcon,
         draggable: true,
       }).addTo(map);
@@ -241,7 +179,7 @@ export function CityFormModal({
         setLongitude(newLng);
       });
 
-      map.on("click", (e: any) => {
+      map.on("click", (e: L.LeafletMouseEvent) => {
         const { lat, lng } = e.latlng;
         const newLat = Number(lat.toFixed(6));
         const newLng = Number(lng.toFixed(6));
@@ -270,7 +208,7 @@ export function CityFormModal({
         markerRef.current = null;
       }
     };
-  }, [isOpen]);
+  }, [initialLat, initialLng]);
 
   const handleLatitudeChange = (val: string) => {
     const newLat = parseFloat(val);
@@ -309,7 +247,7 @@ export function CityFormModal({
           },
         }
       );
-      const data = await res.json();
+      const data = (await res.json()) as Array<{ display_name: string; lat: string; lon: string }>;
       if (Array.isArray(data) && data.length > 0) {
         setSearchResults(data);
       } else {
@@ -318,7 +256,7 @@ export function CityFormModal({
             mapSearch
           )}&limit=5`
         );
-        const globalData = await globalRes.json();
+        const globalData = (await globalRes.json()) as Array<{ display_name: string; lat: string; lon: string }>;
         if (Array.isArray(globalData) && globalData.length > 0) {
           setSearchResults(globalData);
         } else {
@@ -356,12 +294,9 @@ export function CityFormModal({
     mapInstanceRef.current?.zoomOut();
   };
 
-  if (!isOpen) return null;
-
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setLogoFile(file);
       setLogoPreview(URL.createObjectURL(file));
     }
   };
@@ -369,7 +304,6 @@ export function CityFormModal({
   const handleStampChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setStampFile(file);
       setStampPreview(URL.createObjectURL(file));
     }
   };
@@ -458,46 +392,88 @@ export function CityFormModal({
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
                   อัปโหลดโลโก้เทศบาล <span className="text-red-500">*</span>
                 </label>
-                <label className="border-2 border-dashed border-slate-200 hover:border-sky-400 bg-slate-50/50 hover:bg-sky-50/30 rounded-2xl p-5 text-center transition-all cursor-pointer block">
-                  <input type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
-                  {logoPreview ? (
-                    <div className="flex flex-col items-center">
-                      <img src={logoPreview} alt="Logo Preview" className="h-16 object-contain mb-2 rounded-lg" />
-                      <span className="text-xs text-sky-600 font-semibold">{logoFile?.name || "โลโก้ที่เลือก"}</span>
+                {logoPreview ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="border border-slate-200 bg-slate-50/80 rounded-2xl p-3 flex flex-col items-center justify-center h-28 relative">
+                      <Image 
+                        src={logoPreview} 
+                        alt="Logo Preview" 
+                        width={80} 
+                        height={80} 
+                        unoptimized 
+                        className="max-h-20 object-contain rounded-lg" 
+                      />
                     </div>
-                  ) : (
-                    <>
-                      <div className="w-10 h-10 rounded-full bg-sky-50 text-sky-600 flex items-center justify-center mx-auto mb-2 border border-sky-100">
-                        <UploadCloud className="w-5 h-5" />
+
+                    <label className="border-2 border-dashed border-slate-200 hover:border-brand-primary bg-slate-50/50 hover:bg-brand-light/30 rounded-2xl p-3 flex flex-col items-center justify-center text-center transition-all cursor-pointer h-28 block">
+                      <input type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
+                      <div className="w-8 h-8 rounded-full bg-brand-light text-brand-primary flex items-center justify-center mb-1 border border-brand-primary/20 shrink-0">
+                        <UploadCloud className="w-4 h-4" />
                       </div>
-                      <p className="text-xs sm:text-sm font-bold text-slate-700">คลิกเพื่ออัปโหลด</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">รองรับไฟล์ .jpg, .png (ขนาดไม่เกิน 2MB)</p>
-                    </>
-                  )}
-                </label>
+                      <p className="text-xs font-bold text-slate-800 leading-none">เปลี่ยนโลโก้</p>
+                      <p className="text-[11px] text-slate-400 mt-1.5 leading-tight">
+                        รองรับไฟล์ .jpg, .png<br />
+                        (ขนาดไม่เกิน 2MB)
+                      </p>
+                    </label>
+                  </div>
+                ) : (
+                  <label className="border-2 border-dashed border-slate-200 hover:border-brand-primary bg-slate-50/50 hover:bg-brand-light/30 rounded-2xl p-4 text-center transition-all cursor-pointer block h-28 flex flex-col items-center justify-center">
+                    <input type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
+                    <div className="w-8 h-8 rounded-full bg-brand-light text-brand-primary flex items-center justify-center mb-1 border border-brand-primary/20 shrink-0">
+                      <UploadCloud className="w-4 h-4" />
+                    </div>
+                    <p className="text-xs sm:text-sm font-bold text-slate-700 leading-none">คลิกเพื่ออัปโหลด</p>
+                    <p className="text-[11px] text-slate-400 mt-1.5 leading-tight">
+                      รองรับไฟล์ .jpg, .png<br />
+                      (ขนาดไม่เกิน 2MB)
+                    </p>
+                  </label>
+                )}
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
                   อัปโหลดตรายาง <span className="text-slate-400 font-normal">(สำหรับใช้ในใบเสร็จรับเงิน)</span>
                 </label>
-                <label className="border-2 border-dashed border-slate-200 hover:border-sky-400 bg-slate-50/50 hover:bg-sky-50/30 rounded-2xl p-5 text-center transition-all cursor-pointer block">
-                  <input type="file" accept="image/*" className="hidden" onChange={handleStampChange} />
-                  {stampPreview ? (
-                    <div className="flex flex-col items-center">
-                      <img src={stampPreview} alt="Stamp Preview" className="h-16 object-contain mb-2 rounded-lg" />
-                      <span className="text-xs text-sky-600 font-semibold">{stampFile?.name || "ตรายางที่เลือก"}</span>
+                {stampPreview ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="border border-slate-200 bg-slate-50/80 rounded-2xl p-3 flex flex-col items-center justify-center h-28 relative">
+                      <Image 
+                        src={stampPreview} 
+                        alt="Stamp Preview" 
+                        width={80} 
+                        height={80} 
+                        unoptimized 
+                        className="max-h-20 object-contain rounded-lg" 
+                      />
                     </div>
-                  ) : (
-                    <>
-                      <div className="w-10 h-10 rounded-full bg-sky-50 text-sky-600 flex items-center justify-center mx-auto mb-2 border border-sky-100">
-                        <UploadCloud className="w-5 h-5" />
+
+                    <label className="border-2 border-dashed border-slate-200 hover:border-brand-primary bg-slate-50/50 hover:bg-brand-light/30 rounded-2xl p-3 flex flex-col items-center justify-center text-center transition-all cursor-pointer h-28 block">
+                      <input type="file" accept="image/*" className="hidden" onChange={handleStampChange} />
+                      <div className="w-8 h-8 rounded-full bg-brand-light text-brand-primary flex items-center justify-center mb-1 border border-brand-primary/20 shrink-0">
+                        <UploadCloud className="w-4 h-4" />
                       </div>
-                      <p className="text-xs sm:text-sm font-bold text-slate-700">คลิกเพื่ออัปโหลด</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">รองรับไฟล์ .jpg, .png (ขนาดไม่เกิน 2MB)</p>
-                    </>
-                  )}
-                </label>
+                      <p className="text-xs font-bold text-slate-800 leading-none">เปลี่ยนตรายาง</p>
+                      <p className="text-[11px] text-slate-400 mt-1.5 leading-tight">
+                        รองรับไฟล์ .jpg, .png<br />
+                        (ขนาดไม่เกิน 2MB)
+                      </p>
+                    </label>
+                  </div>
+                ) : (
+                  <label className="border-2 border-dashed border-slate-200 hover:border-brand-primary bg-slate-50/50 hover:bg-brand-light/30 rounded-2xl p-4 text-center transition-all cursor-pointer block h-28 flex flex-col items-center justify-center">
+                    <input type="file" accept="image/*" className="hidden" onChange={handleStampChange} />
+                    <div className="w-8 h-8 rounded-full bg-brand-light text-brand-primary flex items-center justify-center mb-1 border border-brand-primary/20 shrink-0">
+                      <UploadCloud className="w-4 h-4" />
+                    </div>
+                    <p className="text-xs sm:text-sm font-bold text-slate-700 leading-none">คลิกเพื่ออัปโหลด</p>
+                    <p className="text-[11px] text-slate-400 mt-1.5 leading-tight">
+                      รองรับไฟล์ .jpg, .png<br />
+                      (ขนาดไม่เกิน 2MB)
+                    </p>
+                  </label>
+                )}
               </div>
             </div>
 
@@ -512,7 +488,7 @@ export function CityFormModal({
                   placeholder="กรอกชื่อภาษาไทย"
                   value={nameTh}
                   onChange={(e) => setNameTh(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-sky-500 focus:bg-white rounded-2xl py-2.5 px-4 text-xs sm:text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400"
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-brand-primary focus:bg-white rounded-2xl py-2.5 px-4 text-xs sm:text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400"
                 />
               </div>
 
@@ -525,7 +501,7 @@ export function CityFormModal({
                   placeholder="กรอกชื่อภาษาอังกฤษ"
                   value={nameEn}
                   onChange={(e) => setNameEn(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-sky-500 focus:bg-white rounded-2xl py-2.5 px-4 text-xs sm:text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400"
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-brand-primary focus:bg-white rounded-2xl py-2.5 px-4 text-xs sm:text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400"
                 />
               </div>
             </div>
@@ -541,7 +517,7 @@ export function CityFormModal({
                   placeholder="กรอกที่อยู่ภาษาไทย"
                   value={addressTh}
                   onChange={(e) => setAddressTh(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-sky-500 focus:bg-white rounded-2xl py-2.5 px-4 text-xs sm:text-sm text-slate-900 outline-none transition-all resize-none placeholder:text-slate-400"
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-brand-primary focus:bg-white rounded-2xl py-2.5 px-4 text-xs sm:text-sm text-slate-900 outline-none transition-all resize-none placeholder:text-slate-400"
                 />
               </div>
 
@@ -554,7 +530,7 @@ export function CityFormModal({
                   placeholder="กรอกที่อยู่ภาษาอังกฤษ"
                   value={addressEn}
                   onChange={(e) => setAddressEn(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-sky-500 focus:bg-white rounded-2xl py-2.5 px-4 text-xs sm:text-sm text-slate-900 outline-none transition-all resize-none placeholder:text-slate-400"
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-brand-primary focus:bg-white rounded-2xl py-2.5 px-4 text-xs sm:text-sm text-slate-900 outline-none transition-all resize-none placeholder:text-slate-400"
                 />
               </div>
             </div>
@@ -570,7 +546,7 @@ export function CityFormModal({
                   placeholder="เช่น 0865482544, 0251524587"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-sky-500 focus:bg-white rounded-2xl py-2.5 px-4 text-xs sm:text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400"
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-brand-primary focus:bg-white rounded-2xl py-2.5 px-4 text-xs sm:text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400"
                 />
                 <p className="text-[11px] text-slate-400 mt-1">สามารถใส่ได้มากกว่า 1 เบอร์ คั่นด้วยเครื่องหมายจุลภาค (,)</p>
               </div>
@@ -607,7 +583,6 @@ export function CityFormModal({
                   ตำแหน่งที่ตั้ง <span className="text-red-500">*</span>
                 </label>
                 <div className="bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 relative h-64 flex flex-col justify-between p-3">
-                  {/* Search Header */}
                   <div className="relative z-20">
                     <div className="relative">
                       <input
@@ -621,20 +596,19 @@ export function CityFormModal({
                             handleSearchLocation();
                           }
                         }}
-                        className="w-full bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl py-2 px-3 pl-8 pr-16 text-xs text-slate-800 outline-none shadow-md focus:border-sky-500"
+                        className="w-full bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl py-2 px-3 pl-8 pr-16 text-xs text-slate-800 outline-none shadow-md focus:border-brand-primary"
                       />
                       <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                       <button
                         type="button"
                         onClick={() => handleSearchLocation()}
                         disabled={isSearching}
-                        className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-[11px] font-medium transition-colors flex items-center gap-1 shadow-xs cursor-pointer"
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-brand-primary hover:bg-brand-hover text-white rounded-lg text-[11px] font-medium transition-colors flex items-center gap-1 shadow-xs cursor-pointer"
                       >
                         {isSearching ? <Loader2 className="w-3 h-3 animate-spin" /> : "ค้นหา"}
                       </button>
                     </div>
 
-                    {/* Search Dropdown Results */}
                     {searchResults.length > 0 && (
                       <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden z-30 max-h-48 overflow-y-auto">
                         {searchResults.map((item, idx) => (
@@ -642,9 +616,9 @@ export function CityFormModal({
                             key={idx}
                             type="button"
                             onClick={() => handleSelectSearchResult(item)}
-                            className="w-full text-left px-3 py-2 text-xs hover:bg-sky-50 text-slate-700 border-b border-slate-100 last:border-0 transition-colors flex items-start gap-2 cursor-pointer"
+                            className="w-full text-left px-3 py-2 text-xs hover:bg-brand-light text-slate-700 border-b border-slate-100 last:border-0 transition-colors flex items-start gap-2 cursor-pointer"
                           >
-                            <MapPin className="w-3.5 h-3.5 text-sky-600 flex-shrink-0 mt-0.5" />
+                            <MapPin className="w-3.5 h-3.5 text-brand-primary flex-shrink-0 mt-0.5" />
                             <span className="line-clamp-2">{item.display_name}</span>
                           </button>
                         ))}
@@ -658,24 +632,22 @@ export function CityFormModal({
                     )}
                   </div>
 
-                  {/* Real Leaflet Map Container */}
                   <div className="absolute inset-0 z-0">
                     <div ref={mapContainerRef} className="w-full h-full" />
                   </div>
 
-                  {/* Zoom Controls */}
                   <div className="flex justify-end gap-2 relative z-10 self-end">
                     <button
                       type="button"
                       onClick={handleZoomIn}
-                      className="w-9 h-9 bg-white/95 backdrop-blur-md text-slate-700 hover:text-sky-600 border border-slate-200 rounded-xl text-base font-bold shadow-md hover:bg-white transition-all cursor-pointer flex items-center justify-center select-none"
+                      className="w-9 h-9 bg-white/95 backdrop-blur-md text-slate-700 hover:text-brand-primary border border-slate-200 rounded-xl text-base font-bold shadow-md hover:bg-white transition-all cursor-pointer flex items-center justify-center select-none"
                     >
                       +
                     </button>
                     <button
                       type="button"
                       onClick={handleZoomOut}
-                      className="w-9 h-9 bg-white/95 backdrop-blur-md text-slate-700 hover:text-sky-600 border border-slate-200 rounded-xl text-base font-bold shadow-md hover:bg-white transition-all cursor-pointer flex items-center justify-center select-none"
+                      className="w-9 h-9 bg-white/95 backdrop-blur-md text-slate-700 hover:text-brand-primary border border-slate-200 rounded-xl text-base font-bold shadow-md hover:bg-white transition-all cursor-pointer flex items-center justify-center select-none"
                     >
                       -
                     </button>
@@ -695,7 +667,7 @@ export function CityFormModal({
                       required
                       value={latitude}
                       onChange={(e) => handleLatitudeChange(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-sky-500 focus:bg-white rounded-2xl py-2.5 px-4 pl-9 text-xs sm:text-sm text-slate-900 outline-none transition-all"
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-brand-primary focus:bg-white rounded-2xl py-2.5 px-4 pl-9 text-xs sm:text-sm text-slate-900 outline-none transition-all"
                     />
                     <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   </div>
@@ -712,7 +684,7 @@ export function CityFormModal({
                       required
                       value={longitude}
                       onChange={(e) => handleLongitudeChange(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-sky-500 focus:bg-white rounded-2xl py-2.5 px-4 pl-9 text-xs sm:text-sm text-slate-900 outline-none transition-all"
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-brand-primary focus:bg-white rounded-2xl py-2.5 px-4 pl-9 text-xs sm:text-sm text-slate-900 outline-none transition-all"
                     />
                     <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   </div>
@@ -730,7 +702,7 @@ export function CityFormModal({
                   <div className="bg-white rounded-2xl p-4 border border-slate-200/80 space-y-3.5 shadow-2xs">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800">
-                        <Bed className="w-4 h-4 text-sky-600" />
+                        <Bed className="w-4 h-4 text-brand-primary" />
                         <span>ผู้ป่วยติดเตียง</span>
                       </div>
                       <ToggleSwitch checked={modBedridden} onChange={setModBedridden} />
@@ -738,7 +710,7 @@ export function CityFormModal({
 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800">
-                        <HeartHandshake className="w-4 h-4 text-sky-600" />
+                        <HeartHandshake className="w-4 h-4 text-brand-primary" />
                         <span>ผู้สูงอายุและผู้พิการ</span>
                       </div>
                       <ToggleSwitch checked={modElderlyDisabled} onChange={setModElderlyDisabled} />
@@ -746,7 +718,7 @@ export function CityFormModal({
 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800">
-                        <CreditCard className="w-4 h-4 text-sky-600" />
+                        <CreditCard className="w-4 h-4 text-brand-primary" />
                         <span>จ่ายภาษีออนไลน์</span>
                       </div>
                       <ToggleSwitch checked={modOnlineTax} onChange={setModOnlineTax} />
@@ -754,7 +726,7 @@ export function CityFormModal({
 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800">
-                        <ShieldCheck className="w-4 h-4 text-sky-600" />
+                        <ShieldCheck className="w-4 h-4 text-brand-primary" />
                         <span>ยืนยันตัวตน</span>
                       </div>
                       <ToggleSwitch checked={modIdentityVerification} onChange={setModIdentityVerification} />
@@ -762,7 +734,7 @@ export function CityFormModal({
 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800">
-                        <Megaphone className="w-4 h-4 text-sky-600" />
+                        <Megaphone className="w-4 h-4 text-brand-primary" />
                         <span>ประชาสัมพันธ์</span>
                       </div>
                       <ToggleSwitch checked={modPublicRelations} onChange={setModPublicRelations} />
@@ -772,7 +744,7 @@ export function CityFormModal({
                   <div className="bg-white rounded-2xl p-4 border border-slate-200/80 space-y-3.5 shadow-2xs">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800">
-                        <Truck className="w-4 h-4 text-sky-600" />
+                        <Truck className="w-4 h-4 text-brand-primary" />
                         <span>ศูนย์ร้องทุกข์ร้องเรียน</span>
                       </div>
                       <ToggleSwitch checked={modComplaintCenter} onChange={setModComplaintCenter} />
@@ -780,7 +752,7 @@ export function CityFormModal({
 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800">
-                        <MessageSquare className="w-4 h-4 text-sky-600" />
+                        <MessageSquare className="w-4 h-4 text-brand-primary" />
                         <span>ร้องทุกข์ร้องเรียน</span>
                       </div>
                       <ToggleSwitch checked={modComplaints} onChange={setModComplaints} />
@@ -788,7 +760,7 @@ export function CityFormModal({
 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800">
-                        <Heart className="w-4 h-4 text-sky-600" />
+                        <Heart className="w-4 h-4 text-brand-primary" />
                         <span>สุขภาพสุนัขและแมว</span>
                       </div>
                       <ToggleSwitch checked={modPetHealth} onChange={setModPetHealth} />
@@ -796,7 +768,7 @@ export function CityFormModal({
 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800">
-                        <Bell className="w-4 h-4 text-sky-600" />
+                        <Bell className="w-4 h-4 text-brand-primary" />
                         <span>การแจ้งเตือน</span>
                       </div>
                       <ToggleSwitch checked={modNotifications} onChange={setModNotifications} />
@@ -809,7 +781,6 @@ export function CityFormModal({
                 <h4 className="text-xs font-bold text-slate-500">โมดูลเลือกระบบ</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="bg-white rounded-2xl p-4 border border-slate-200/80 space-y-3.5 shadow-2xs">
-                    {/* Top Row: Icon + Title + Toggle */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800">
                         <Trash2 className="w-4 h-4 text-emerald-600" />
@@ -818,7 +789,6 @@ export function CityFormModal({
                       <ToggleSwitch checked={modWasteFee} onChange={setModWasteFee} />
                     </div>
 
-                    {/* Bottom Row: System setting box matching ฟ้าฝน UUID style */}
                     <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50">
                       <span className="px-3 py-2 text-xs font-semibold text-slate-500 bg-slate-100 border-r border-slate-200 whitespace-nowrap select-none">
                         ตั้งค่าระบบ
@@ -831,7 +801,7 @@ export function CityFormModal({
                             value="old"
                             checked={modWasteFeeSystem === "old"}
                             onChange={() => setModWasteFeeSystem("old")}
-                            className="w-4 h-4 text-sky-600 focus:ring-sky-500 cursor-pointer accent-sky-600"
+                            className="w-4 h-4 text-brand-primary accent-brand-primary cursor-pointer rounded-full outline-none focus:outline-none focus:ring-0 focus:ring-offset-0"
                           />
                           <span className="text-xs font-semibold text-slate-700">ระบบเก่า</span>
                         </label>
@@ -842,7 +812,7 @@ export function CityFormModal({
                             value="new"
                             checked={modWasteFeeSystem === "new"}
                             onChange={() => setModWasteFeeSystem("new")}
-                            className="w-4 h-4 text-sky-600 focus:ring-sky-500 cursor-pointer accent-sky-600"
+                            className="w-4 h-4 text-brand-primary accent-brand-primary cursor-pointer rounded-full outline-none focus:outline-none focus:ring-0 focus:ring-offset-0"
                           />
                           <span className="text-xs font-semibold text-slate-700">ระบบใหม่</span>
                         </label>
@@ -858,7 +828,7 @@ export function CityFormModal({
                   <div className="bg-white rounded-2xl p-4 border border-slate-200/80 space-y-3.5 shadow-2xs">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800">
-                        <Camera className="w-4 h-4 text-sky-600" />
+                        <Camera className="w-4 h-4 text-brand-primary" />
                         <span>กล้องวงจรปิด</span>
                       </div>
                       <ToggleSwitch checked={modCctv} onChange={setModCctv} />
@@ -866,7 +836,7 @@ export function CityFormModal({
 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800">
-                        <Waves className="w-4 h-4 text-sky-600" />
+                        <Waves className="w-4 h-4 text-brand-primary" />
                         <span>ข้อมูลระดับน้ำ</span>
                       </div>
                       <ToggleSwitch checked={modWaterLevel} onChange={setModWaterLevel} />
@@ -876,14 +846,14 @@ export function CityFormModal({
                   <div className="bg-white rounded-2xl p-4 border border-slate-200/80 space-y-3.5 shadow-2xs">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800">
-                        <CloudRain className="w-4 h-4 text-sky-600" />
+                        <CloudRain className="w-4 h-4 text-brand-primary" />
                         <span>ฟ้าฝน</span>
                       </div>
                       <ToggleSwitch checked={modFahFon} onChange={setModFahFon} />
                     </div>
 
-                    <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50">
-                      <span className="px-3 py-2 text-xs font-semibold text-slate-500 bg-slate-100 border-r border-slate-200 whitespace-nowrap select-none">
+                    <div className="flex items-center border border-slate-200 focus-within:border-brand-primary focus-within:ring-3 focus-within:ring-brand-primary/15 rounded-xl overflow-hidden bg-slate-50/50 transition-all">
+                      <span className="px-3 py-2 text-xs font-semibold text-slate-500 bg-slate-100 border-r border-slate-200 whitespace-nowrap select-none shrink-0">
                         UUID
                       </span>
                       <input
@@ -891,7 +861,7 @@ export function CityFormModal({
                         placeholder="กรอก UUID (Optional)"
                         value={modFahFonUuid}
                         onChange={(e) => setModFahFonUuid(e.target.value)}
-                        className="w-full bg-white py-1.5 px-3 text-xs text-slate-900 outline-none placeholder:text-slate-400"
+                        className="w-full bg-white py-1.5 px-3 text-xs text-slate-900 outline-none focus:outline-none focus:ring-0 focus:border-transparent placeholder:text-slate-400"
                       />
                     </div>
                   </div>
@@ -900,7 +870,6 @@ export function CityFormModal({
             </div>
           </div>
 
-          {/* Fixed Modal Footer Bar */}
           <div className="p-4 sm:px-8 sm:py-5 border-t border-slate-100 bg-white flex items-center justify-end gap-3 shrink-0 z-20">
             <button
               type="button"
@@ -912,7 +881,7 @@ export function CityFormModal({
             <button
               type="submit"
               disabled={saving}
-              className="px-6 py-2.5 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-md shadow-sky-600/20 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="px-6 py-2.5 bg-brand-primary hover:bg-brand-hover active:bg-brand-hover text-white rounded-xl text-xs sm:text-sm font-semibold shadow-md shadow-brand-primary/20 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               {saving ? (
                 <>
@@ -932,5 +901,18 @@ export function CityFormModal({
         </form>
       </div>
     </div>
+  );
+}
+
+export function CityFormModal(props: CityFormModalProps) {
+  if (!props.isOpen) return null;
+  return (
+    <CityFormModalContent
+      key={`${props.mode}-${props.cityData?.id || "new"}`}
+      onClose={props.onClose}
+      mode={props.mode}
+      cityData={props.cityData}
+      onSave={props.onSave}
+    />
   );
 }
