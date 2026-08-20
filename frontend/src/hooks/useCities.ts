@@ -6,6 +6,7 @@ export interface City {
   name_th: string;
   name_en?: string;
   logo_url?: string;
+  stamp_url?: string;
   address_th: string;
   address_en?: string;
   phone?: string;
@@ -46,6 +47,8 @@ const INITIAL_MOCK_CITIES: City[] = [
     id: "1",
     name_th: "เมืองฟ้าฝน",
     name_en: "Fah Fon Town Municipality",
+    logo_url: "/images/logo_fahfon.jpeg",
+    stamp_url: "/images/stamp_fahfon.png",
     address_th: "9 Subdistrict ตำบล คลองนารายณ์ อำเภอเมืองจันทบุรี จันทบุรี 22000",
     address_en: "9 Moo 14, Khlong Narai ,Mueang Chanthaburi District ,Chanthaburi ,22000 ,Thailand",
     status: "ใช้งาน",
@@ -167,6 +170,8 @@ const INITIAL_MOCK_CITIES: City[] = [
     id: "8",
     name_th: "เมืองฟ้าฝน",
     name_en: "Fah Fon Town Municipality",
+    logo_url: "/images/logo_fahfon.jpeg",
+    stamp_url: "/images/stamp_fahfon.png",
     address_th: "ที่อยู่ 9 หมู่ 14 ต.คลองนารายณ์ อ.เมืองจันทบุรี จ.จันทบุรี 22000",
     status: "ใช้งาน",
     modules_count: 8,
@@ -431,9 +436,12 @@ export function useCities() {
           const active = mockItem.active_users_count || 150;
           const registered = Math.round(active * 1.5);
 
+          const isFahfon = c.name_th?.includes("ฟ้าฝน") || mockItem.name_th?.includes("ฟ้าฝน");
           mergedMap.set(c.name_th, {
             ...mockItem,
             ...c,
+            logo_url: isFahfon ? "/images/logo_fahfon.jpeg" : (c.logo_url || mockItem.logo_url),
+            stamp_url: isFahfon ? "/images/stamp_fahfon.png" : (c.stamp_url || mockItem.stamp_url),
             modules_count: 8,
             active_modules_count: 8,
             river_status: c.river_status ?? mockItem.river_status ?? 10,

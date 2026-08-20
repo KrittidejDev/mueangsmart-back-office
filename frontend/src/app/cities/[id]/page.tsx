@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, use } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -21,8 +22,6 @@ import {
   Users,
   ShieldCheck,
   MapPin,
-  CheckCircle2,
-  XCircle,
 } from "lucide-react";
 
 interface MetricRowProps {
@@ -56,18 +55,20 @@ function MetricRow({ label, value, unit, variant = "default" }: MetricRowProps) 
 }
 
 function CityHeaderLogo({ logoUrl, name }: { logoUrl?: string; name: string }) {
+  const isFahfon = name?.includes("ฟ้าฝน");
+  const targetLogo = isFahfon ? "/images/logo_fahfon.jpeg" : logoUrl;
   const [imgError, setImgError] = useState(false);
 
   const isValidUrl =
-    logoUrl &&
-    (logoUrl.startsWith("http://") ||
-      logoUrl.startsWith("https://") ||
-      logoUrl.startsWith("/") ||
-      logoUrl.startsWith("data:image/"));
+    targetLogo &&
+    (targetLogo.startsWith("http://") ||
+      targetLogo.startsWith("https://") ||
+      targetLogo.startsWith("/") ||
+      targetLogo.startsWith("data:image/"));
 
-  if (!logoUrl || imgError || !isValidUrl) {
+  if (!targetLogo || (!isFahfon && (imgError || !isValidUrl))) {
     return (
-      <div className="w-16 h-16 rounded-2xl bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center font-bold text-2xl shadow-2xs flex-shrink-0">
+      <div className="w-16 h-16 rounded-2xl bg-brand-light border border-brand-primary/20 text-brand-primary flex items-center justify-center font-bold text-2xl shadow-2xs flex-shrink-0">
         <Building2 className="w-8 h-8" />
       </div>
     );
@@ -75,10 +76,15 @@ function CityHeaderLogo({ logoUrl, name }: { logoUrl?: string; name: string }) {
 
   return (
     <div className="w-16 h-16 rounded-2xl border border-slate-200 bg-white p-1 shadow-2xs flex-shrink-0 relative overflow-hidden flex items-center justify-center">
-      <img
-        src={logoUrl}
+      <Image
+        src={targetLogo}
         alt={name}
-        onError={() => setImgError(true)}
+        width={64}
+        height={64}
+        unoptimized
+        onError={() => {
+          if (!isFahfon) setImgError(true);
+        }}
         className="w-full h-full object-contain rounded-xl"
       />
     </div>
@@ -154,7 +160,7 @@ export default function CityDetailPage({ params }: { params: Promise<{ id: strin
               <div className="flex flex-wrap items-center gap-3">
                 <Link
                   href="/cities"
-                  className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 hover:text-sky-600 bg-white border border-slate-200 px-3.5 py-2 rounded-xl transition-all shadow-2xs hover:border-sky-300"
+                  className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 hover:text-brand-primary bg-white border border-slate-200 px-3.5 py-2 rounded-xl transition-all shadow-2xs hover:border-brand-primary/30"
                 >
                   <ArrowLeft className="w-4 h-4 text-slate-500" />
                   <span>ย้อนกลับไปหน้าการแสดงเมือง</span>
@@ -172,7 +178,7 @@ export default function CityDetailPage({ params }: { params: Promise<{ id: strin
 
                 <button
                   onClick={handleExport}
-                  className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white rounded-xl px-4 py-2 text-xs font-bold shadow-sm transition-all cursor-pointer"
+                  className="inline-flex items-center gap-2 bg-brand-primary hover:bg-brand-hover active:bg-brand-hover text-white rounded-xl px-4 py-2 text-xs font-bold shadow-md shadow-brand-primary/20 transition-all cursor-pointer"
                 >
                   <Download className="w-4 h-4" />
                   <span>ส่งออกรายงาน</span>
@@ -214,10 +220,10 @@ export default function CityDetailPage({ params }: { params: Promise<{ id: strin
                               href={`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`}
                               target="_blank"
                               rel="noreferrer"
-                              className="font-semibold text-sky-600 hover:underline inline-flex items-center gap-1"
+                              className="font-semibold text-brand-primary hover:underline inline-flex items-center gap-1"
                             >
                               <span>{lat} , {lng}</span>
-                              <MapPin className="w-3.5 h-3.5 text-sky-500" />
+                              <MapPin className="w-3.5 h-3.5 text-brand-primary" />
                             </a>
                           </span>
                         </div>
@@ -232,7 +238,7 @@ export default function CityDetailPage({ params }: { params: Promise<{ id: strin
 
                       <button
                         onClick={() => setEditModalOpen(true)}
-                        className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white rounded-xl px-4 py-2 text-xs font-bold shadow-2xs transition-all cursor-pointer"
+                        className="inline-flex items-center gap-2 bg-brand-primary hover:bg-brand-hover active:bg-brand-hover text-white rounded-xl px-4 py-2 text-xs font-bold shadow-md shadow-brand-primary/20 transition-all cursor-pointer"
                       >
                         <Edit className="w-4 h-4" />
                         <span>แก้ไขเมือง</span>
@@ -401,7 +407,7 @@ export default function CityDetailPage({ params }: { params: Promise<{ id: strin
                       <div className="flex items-center justify-between flex-wrap gap-2 pb-2.5 border-b border-slate-100">
                         <h3 className="text-sm font-bold text-slate-900">ค่าธรรมเนียมขยะ</h3>
                         <div className="flex items-center gap-1.5">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-700 border border-sky-200">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-brand-light text-brand-primary border border-brand-primary/20">
                             ระบบใหม่
                           </span>
                           <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">

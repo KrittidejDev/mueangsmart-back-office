@@ -41,45 +41,48 @@ export function Header({ onMenuClick }: HeaderProps) {
   }, []);
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm">
+    <header 
+      className="h-16 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-30 shadow-md text-white"
+      style={{ background: "linear-gradient(90deg, #220e78, #1dd5df)" }}
+    >
       <div className="flex items-center gap-3">
         {/* Mobile Hamburger Toggle Button */}
         <button
           onClick={onMenuClick}
-          className="lg:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+          className="lg:hidden p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all cursor-pointer"
         >
           <Menu className="w-6 h-6" />
         </button>
 
-        <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-          <Activity className="w-3.5 h-3.5 text-emerald-600" />
+        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-white/15 backdrop-blur-md text-white border border-white/20 shadow-2xs">
+          <Activity className="w-3.5 h-3.5 text-emerald-300" />
           <span className="hidden sm:inline">UAT Environment Connected</span>
           <span className="sm:hidden">UAT</span>
         </span>
       </div>
 
       <div className="flex items-center gap-2 sm:gap-4">
-        <button className="p-2 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-all relative">
+        <button className="p-2 text-white/80 hover:text-white rounded-lg hover:bg-white/10 transition-all relative cursor-pointer">
           <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-sky-500 rounded-full animate-ping" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-400 rounded-full animate-ping" />
         </button>
 
-        <div className="h-6 w-[1px] bg-slate-200" />
+        <div className="h-6 w-[1px] bg-white/20" />
 
         {/* Avatar Profile Dropdown */}
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-2 sm:gap-3 p-1.5 rounded-xl hover:bg-slate-100 transition-all cursor-pointer outline-none"
+            className="flex items-center gap-2 sm:gap-3 p-1.5 rounded-xl hover:bg-white/10 transition-all cursor-pointer outline-none"
           >
-            <div className="w-9 h-9 rounded-full bg-sky-50 border border-sky-200 text-sky-600 flex items-center justify-center font-bold text-sm shadow-sm">
+            <div className="w-9 h-9 rounded-full bg-white/20 border border-white/30 text-white flex items-center justify-center font-bold text-sm shadow-sm backdrop-blur-sm">
               <User className="w-5 h-5" />
             </div>
             <div className="text-left hidden sm:block">
-              <p className="text-xs font-bold text-slate-800 leading-none">{user?.fullName || "System SuperAdmin"}</p>
-              <p className="text-[10px] text-slate-500 font-medium mt-0.5">{user?.roleName || "Platform SuperAdmin"}</p>
+              <p className="text-xs font-bold text-white leading-none">{user?.fullName || "System SuperAdmin"}</p>
+              <p className="text-[10px] text-white/80 font-medium mt-0.5">{user?.roleName || "Platform SuperAdmin"}</p>
             </div>
-            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`} />
+            <ChevronDown className={`w-4 h-4 text-white/70 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`} />
           </button>
 
           {/* Dropdown Menu */}
@@ -88,9 +91,22 @@ export function Header({ onMenuClick }: HeaderProps) {
               <div className="px-4 py-3 border-b border-slate-100">
                 <p className="text-xs font-bold text-slate-900">{user?.fullName || "System SuperAdmin"}</p>
                 <p className="text-[11px] text-slate-500 truncate mt-0.5">{user?.username || "superadmin"}</p>
-                <span className="inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-semibold bg-sky-50 text-sky-700 border border-sky-200">
-                  {user?.roleName || "SuperAdmin"}
-                </span>
+                {(() => {
+                  const role = user?.roleName || "SuperAdmin";
+                  const badgeStyle =
+                    role === "SuperAdmin"
+                      ? "bg-sky-50 text-sky-700 border-sky-200"
+                      : role === "Admin"
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      : role === "Executive" || role === "ผู้บริหาร"
+                      ? "bg-amber-50 text-amber-700 border-amber-200"
+                      : "bg-slate-100 text-slate-700 border-slate-200";
+                  return (
+                    <span className={`inline-block mt-2 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${badgeStyle}`}>
+                      {role}
+                    </span>
+                  );
+                })()}
               </div>
 
               <div className="py-1">

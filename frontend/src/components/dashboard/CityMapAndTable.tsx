@@ -843,7 +843,7 @@ export function CityMapAndTable() {
                 onClick={() => setCurrentPage(pageNum)}
                 className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${
                   currentPage === pageNum
-                    ? "bg-sky-600 text-white shadow-sm"
+                    ? "bg-brand-primary text-white shadow-sm"
                     : "text-slate-600 hover:bg-slate-100 border border-transparent"
                 }`}
               >

@@ -22,17 +22,16 @@ export default function AuditLogsPage() {
           <main className="p-4 sm:p-8 space-y-6 sm:space-y-8 flex-1">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
-                  <ClipboardList className="w-6 h-6 sm:w-7 sm:h-7 text-sky-600" />
-                  <span>ประวัติการใช้งานระบบ (Professional Audit Trail)</span>
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight">
+                  ประวัติการใช้งานระบบ (Professional Audit Trail)
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-500 mt-1">
                   ระบบบันทึกประวัติการกระทำและคำสั่งสำคัญของผู้ดูแลระบบ (เฉพาะ SuperAdmin เท่านั้น)
                 </p>
               </div>
 
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-sky-50 text-sky-700 border border-sky-200 self-start sm:self-auto">
-                <ShieldCheck className="w-4 h-4" />
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-brand-light text-brand-primary border border-brand-primary/20 self-start sm:self-auto shadow-2xs">
+                <ShieldCheck className="w-4 h-4 text-brand-primary" />
                 <span>SuperAdmin Privilege Access Only</span>
               </span>
             </div>
@@ -46,7 +45,7 @@ export default function AuditLogsPage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="ค้นหาชื่อผู้ใช้ คำสั่ง หรือ IP Address..."
-                  className="w-full bg-slate-50 border border-slate-300 focus:border-sky-500 focus:bg-white rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-800 outline-none transition-all"
+                  className="w-full bg-slate-50 border border-slate-300 focus:border-brand-primary focus:bg-white rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-800 outline-none transition-all"
                 />
               </div>
 

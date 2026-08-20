@@ -4,6 +4,23 @@
 
 ---
 
+## [1.0.0-rc.1] - 2026-08-20
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Frontend Code Quality & React 19 Compliance:**
+  - สร้างไฟล์ `eslint.config.mjs` รองรับ **ESLint 9 Flat Config** ร่วมกับ Next.js 16
+  - ปรับปรุงการจัดการ Modal State ใน `CityFormModal.tsx` และ `ModuleFormModal.tsx` ให้ใช้ Key-based State Initialization ป้องกัน Cascading Re-render และขจัด `react-hooks/set-state-in-effect`
+  - ปรับปรุง `ProtectedRoute.tsx`, `CityUsageAnalytics.tsx` และ `Sidebar.tsx` ให้ใช้ `useSyncExternalStore` และ Pure Derived State
+  - แทนที่ `<img>` ด้วย Next.js `<Image />` พร้อม Type-safe Optimization
+  - แก้ไข HTML Entities และลบ Impure Function `Math.random` ออกจาก Render Path
+  - Strict Type Safety: ปราศจาก `any` และคงไว้ซึ่ง Clean Code Standards ตาม `AGENTS.md`
+
+### 2. เทคโนโลยีและ Dependencies ที่เลือกใช้ (Dependencies & Architecture)
+- **Engine:** Next.js 16 + React 19 + TypeScript + ESLint 9 (Flat Config)
+- **Optimization:** `useSyncExternalStore`, React 19 Pure Component Lifecycle, Next.js Image Optimization
+
+---
+
 ## [1.0.0-alpha.1] - 2026-07-27
 
 ### 1. รายละเอียดสิ่งที่พัฒนา (What was built)

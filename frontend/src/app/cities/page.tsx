@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -49,16 +50,18 @@ function SortIcon({
 }
 
 function CityLogo({ logoUrl, name }: { logoUrl?: string; name: string }) {
+  const isFahfon = name?.includes("ฟ้าฝน");
+  const targetLogo = isFahfon ? "/images/logo_fahfon.jpeg" : logoUrl;
   const [imgError, setImgError] = useState(false);
 
   const isValidUrl =
-    logoUrl &&
-    (logoUrl.startsWith("http://") ||
-      logoUrl.startsWith("https://") ||
-      logoUrl.startsWith("/") ||
-      logoUrl.startsWith("data:image/"));
+    targetLogo &&
+    (targetLogo.startsWith("http://") ||
+      targetLogo.startsWith("https://") ||
+      targetLogo.startsWith("/") ||
+      targetLogo.startsWith("data:image/"));
 
-  if (!logoUrl || imgError || !isValidUrl) {
+  if (!targetLogo || (!isFahfon && (imgError || !isValidUrl))) {
     return (
       <div className="w-9 h-9 rounded-full bg-slate-100 border border-slate-200/80 text-slate-400 flex items-center justify-center flex-shrink-0 shadow-2xs">
         <Building2 className="w-4 h-4 text-slate-400" />
@@ -67,10 +70,15 @@ function CityLogo({ logoUrl, name }: { logoUrl?: string; name: string }) {
   }
 
   return (
-    <img
-      src={logoUrl}
+    <Image
+      src={targetLogo}
       alt={name}
-      onError={() => setImgError(true)}
+      width={36}
+      height={36}
+      unoptimized
+      onError={() => {
+        if (!isFahfon) setImgError(true);
+      }}
       className="w-9 h-9 rounded-full object-cover border border-slate-200/80 shadow-2xs flex-shrink-0"
     />
   );
@@ -194,7 +202,7 @@ export default function CitiesPage() {
         description: (
           <span>
             สร้างข้อมูลเมือง<br />
-            <strong className="text-slate-800 font-bold">"{data.name_th || "ใหม่"}"</strong><br />
+            <strong className="text-slate-800 font-bold">&ldquo;{data.name_th || "ใหม่"}&rdquo;</strong><br />
             เข้าสู่ระบบเรียบร้อยแล้ว
           </span>
         ),
@@ -205,7 +213,7 @@ export default function CitiesPage() {
   };
 
   const handleOpenEditModal = (city?: City) => {
-    const targetCity = city || (cities.length > 0 ? cities[Math.floor(Math.random() * cities.length)] : null);
+    const targetCity = city || (cities.length > 0 ? cities[0] : null);
     setEditingCity(targetCity);
     setEditModalOpen(true);
   };
@@ -221,7 +229,7 @@ export default function CitiesPage() {
         description: (
           <span>
             อัปเดตข้อมูลรายละเอียดเมือง<br />
-            <strong className="text-slate-800 font-bold">"{data.name_th || editingCity.name_th}"</strong><br />
+            <strong className="text-slate-800 font-bold">&ldquo;{data.name_th || editingCity.name_th}&rdquo;</strong><br />
             เรียบร้อยแล้ว
           </span>
         ),
@@ -312,14 +320,14 @@ export default function CitiesPage() {
                         setSearchQuery(e.target.value);
                         setCurrentPage(1);
                       }}
-                      className="w-full bg-slate-50 border border-slate-300 focus:border-sky-500 focus:bg-white rounded-xl py-2 px-3 pr-9 text-xs sm:text-sm text-slate-900 outline-none transition-all"
+                      className="w-full bg-slate-50 border border-slate-300 focus:border-brand-primary focus:bg-white rounded-xl py-2 px-3 pr-9 text-xs sm:text-sm text-slate-900 outline-none transition-all"
                     />
                     <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
                   {canEdit && (
                     <button
                       onClick={handleOpenCreateModal}
-                      className="px-4 py-2 bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                      className="px-4 py-2 bg-brand-primary hover:bg-brand-hover text-white rounded-xl text-xs sm:text-sm font-semibold shadow-md shadow-brand-primary/20 transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                     >
                       <Plus className="w-4 h-4" />
                       <span>เพิ่มเมือง</span>
@@ -460,7 +468,7 @@ export default function CitiesPage() {
                           <td className="py-3.5 pl-2 pr-4 sm:pr-6 text-center whitespace-nowrap space-x-1.5">
                             <Link
                               href={`/cities/${city.id}`}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-sky-200 bg-sky-50/60 hover:bg-sky-100 text-sky-600 rounded-lg text-xs font-semibold shadow-2xs transition-all cursor-pointer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-brand-primary/20 bg-brand-light/70 hover:bg-brand-light text-brand-primary rounded-lg text-xs font-bold shadow-2xs transition-all cursor-pointer"
                             >
                               <ExternalLink className="w-3.5 h-3.5" />
                               <span>รายละเอียด & สถิติ</span>
@@ -498,7 +506,7 @@ export default function CitiesPage() {
                           setPageSize(Number(e.target.value));
                           setCurrentPage(1);
                         }}
-                        className="appearance-none bg-white border border-slate-200 rounded-lg pl-3 pr-8 py-1.5 text-xs text-slate-700 font-semibold focus:outline-none focus:border-sky-500 cursor-pointer shadow-2xs"
+                        className="appearance-none bg-white border border-slate-200 rounded-lg pl-3 pr-8 py-1.5 text-xs text-slate-700 font-semibold focus:outline-none focus:border-brand-primary cursor-pointer shadow-2xs"
                       >
                         <option value={10}>10</option>
                         <option value={25}>25</option>
@@ -524,9 +532,9 @@ export default function CitiesPage() {
                         key={page}
                         type="button"
                         onClick={() => setCurrentPage(page)}
-                        className={`w-8 h-8 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer shadow-2xs ${
+                        className={`w-8 h-8 rounded-lg text-xs font-bold flex items-center justify-center transition-all cursor-pointer shadow-2xs ${
                           currentPage === page
-                            ? "bg-white border-2 border-sky-500 text-sky-600"
+                            ? "bg-brand-primary text-white shadow-sm"
                             : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
                         }`}
                       >

@@ -158,13 +158,15 @@ const CustomChartTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
+const subscribe = () => () => {};
+
 export function CityUsageAnalytics() {
   const [selectedYear, setSelectedYear] = useState<string>("2569");
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = React.useSyncExternalStore(
+    subscribe,
+    () => true,
+    () => false
+  );
 
   const currentData = ANALYTICS_BY_YEAR[selectedYear] || ANALYTICS_BY_YEAR["2569"];
 
