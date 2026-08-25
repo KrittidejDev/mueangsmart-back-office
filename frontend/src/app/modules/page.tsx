@@ -143,7 +143,7 @@ export default function ModulesPage() {
     : 0;
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute restrictedRoles={["Executive", "ผู้บริหาร"]}>
       <div className="flex min-h-screen bg-slate-50">
         <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
         <div className="flex-1 flex flex-col min-w-0">
