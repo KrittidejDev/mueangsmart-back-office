@@ -11,6 +11,7 @@ import { CityFormModal } from "@/components/cities/CityFormModal";
 import { SuccessModal } from "@/components/ui/SuccessModal";
 import { resolveImageUrl } from "@/lib/image";
 import { useCities, City, ModuleStatus, CityStatistics } from "@/hooks/useCities";
+import { useAuthStore } from "@/store/useAuthStore";
 import { fetchSenseDeviceCount } from "@/services/gatewayService";
 import { api } from "@/lib/api";
 import {
@@ -106,6 +107,9 @@ export default function CityDetailPage({ params }: { params: Promise<{ id: strin
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [dateRange] = useState("1 ม.ค. 2569 - 31 ธ.ค. 2569");
+
+  const { user: currentUser } = useAuthStore();
+  const canEdit = currentUser?.roleName === "SuperAdmin" || currentUser?.roleName === "Admin";
 
   const { fetchCityByID, fetchCityStatistics, updateCity } = useCities();
 
@@ -297,13 +301,15 @@ export default function CityDetailPage({ params }: { params: Promise<{ id: strin
                         {isActive ? "เปิดใช้งาน" : "ไม่ใช้งาน"}
                       </span>
 
-                      <button
-                        onClick={() => setEditModalOpen(true)}
-                        className="inline-flex items-center gap-2 bg-brand-primary hover:bg-brand-hover active:bg-brand-hover text-white rounded-xl px-4 py-2 text-xs font-bold shadow-md shadow-brand-primary/20 transition-all cursor-pointer"
-                      >
-                        <Edit className="w-4 h-4" />
-                        <span>แก้ไขเมือง</span>
-                      </button>
+                      {canEdit && (
+                        <button
+                          onClick={() => setEditModalOpen(true)}
+                          className="inline-flex items-center gap-2 bg-brand-primary hover:bg-brand-hover active:bg-brand-hover text-white rounded-xl px-4 py-2 text-xs font-bold shadow-md shadow-brand-primary/20 transition-all cursor-pointer"
+                        >
+                          <Edit className="w-4 h-4" />
+                          <span>แก้ไขเมือง</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

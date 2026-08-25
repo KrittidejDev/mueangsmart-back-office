@@ -3,6 +3,7 @@ import { create } from "zustand";
 interface UserProfile {
   id: string;
   username: string;
+  email?: string;
   fullName: string;
   roleName: string;
   permissions: Array<{ resource: string; action: string }>;
@@ -14,6 +15,7 @@ interface AuthState {
   isAuthenticated: boolean;
   hasHydrated: boolean;
   setAuth: (token: string, user: UserProfile) => void;
+  updateUser: (updatedFields: Partial<UserProfile>) => void;
   logout: () => void;
   initAuth: () => void;
 }
@@ -30,6 +32,17 @@ export const useAuthStore = create<AuthState>((set) => ({
       localStorage.setItem("superadmin_user", JSON.stringify(user));
     }
     set({ token, user, isAuthenticated: true, hasHydrated: true });
+  },
+
+  updateUser: (updatedFields) => {
+    set((state) => {
+      if (!state.user) return state;
+      const newUser = { ...state.user, ...updatedFields };
+      if (typeof window !== "undefined") {
+        localStorage.setItem("superadmin_user", JSON.stringify(newUser));
+      }
+      return { user: newUser };
+    });
   },
 
   logout: () => {

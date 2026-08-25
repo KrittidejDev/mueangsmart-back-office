@@ -4,6 +4,84 @@
 
 ---
 
+## [1.0.0-rc.22] - 2026-08-26
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Enterprise Rate Limiter & DDoS Mitigation Safeguards:**
+  - **Backend Layer (Go Fiber v3 Limiter Middleware):**
+    - ติดตั้ง `github.com/gofiber/fiber/v3/middleware/limiter` ใน [`cmd/server/main.go`](file:///c:/Users/phnjk/mueangsmart-back-office/backend/cmd/server/main.go)
+    - กำหนดขีดจำกัดความปลอดภัยที่ 300 Requests/นาที/IP พร้อมส่งคืน `HTTP 429 Too Many Requests` เมื่อมีการร้องขอเกินอัตรา ป้องกันการโจมตี DDoS, Brute-Force Attacks, และ Client Infinite Loop โดยสมบูรณ์
+  - **Comprehensive Codebase Audit:**
+    - ตรวจสอบ Custom Hooks ทุกตัวใน Frontend (`useCities`, `useModules`, `useSuperAdmins`, `useAnalytics`, `useAuditLogs`, `useAuthStore`) ยืนยันว่าไม่มี Dependency Loop หรือ Polling ซ้ำซ้อน
+    - ยืนยันระบบ Memory Caching ที่มีอยู่เดิมเพื่อลดภาระการยิง Network I/O
+
+### 2. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **Backend Tests:** `go test ./...` และ `go vet ./...` ผ่าน 100% (0 errors)
+- **Frontend Quality:** `npx tsc --noEmit` ผ่าน 100% (0 errors)
+
+---
+
+## [1.0.0-rc.21] - 2026-08-26
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Resolved Continuous Background Requests & Optimized Audit Logging:**
+  - **Frontend `ProfileModal.tsx` Fix:** แก้ไข `useEffect` Dependency Array ใน [`src/components/profile/ProfileModal.tsx`](file:///c:/Users/phnjk/mueangsmart-back-office/frontend/src/components/profile/ProfileModal.tsx) ที่เดิมผูกกับ `user` และ `updateUser` ทำให้เกิด Infinite Re-render Loop ดึง `/auth/me` ตลอดเวลา โดยปรับให้รันเฉพาะเมื่อ `isOpen` มีการเปลี่ยนแปลงเท่านั้น
+  - **Backend `audit_middleware.go` Optimization:** ปรับปรุงเงื่อนไขใน [`pkg/middleware/audit_middleware.go`](file:///c:/Users/phnjk/mueangsmart-back-office/backend/pkg/middleware/audit_middleware.go) ให้บันทึก Audit Log เฉพาะการกระทำประเภท Mutating Request (`POST`, `PUT`, `PATCH`, `DELETE`) เท่านั้น และตัดการบันทึก `GET /api/v1/auth/me` ออกทั้งหมด ป้องกันการเขียนลงตาราง `BoAuditLogs` ซ้ำซ้อนโดยไม่จำเป็น
+
+### 2. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **Backend Tests:** `go test ./...` และ `go vet ./...` ผ่าน 100% (0 errors)
+- **Frontend Quality:** `npx tsc --noEmit` ผ่าน 100% (0 errors)
+
+---
+
+## [1.0.0-rc.20] - 2026-08-26
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Profile Management & Secure Password Update System:**
+  - **Backend Layer (Go Fiber v3 Clean Architecture):**
+    - เพิ่ม Domain DTO `UpdateProfileRequest` ใน [`internal/domain/repository.go`](file:///c:/Users/phnjk/mueangsmart-back-office/backend/internal/domain/repository.go)
+    - พัฒนา `UpdateProfile` ใน [`internal/usecase/auth_usecase.go`](file:///c:/Users/phnjk/mueangsmart-back-office/backend/internal/usecase/auth_usecase.go) พร้อมการตรวจสอบสิทธิ์:
+      - ตรวจสอบความถูกต้องและ Uniqueness ของ `Email`
+      - ตรวจสอบ `CurrentPassword` ด้วย `bcrypt` ก่อนอนุญาตให้เปลี่ยนรหัสผ่าน
+      - บังคับความยาวรหัสผ่านใหม่อย่างน้อย 6 ตัวอักษร
+    - พัฒนาคำสั่ง `Update` และ `FindByEmail` ใน [`internal/repository/super_admin_repository.go`](file:///c:/Users/phnjk/mueangsmart-back-office/backend/internal/repository/super_admin_repository.go) บันทึกลงตาราง `"BoSuperAdmins"`
+    - เปิด Endpoint `PUT /api/v1/auth/profile` ใน [`internal/handler/auth_handler.go`](file:///c:/Users/phnjk/mueangsmart-back-office/backend/internal/handler/auth_handler.go)
+  - **Frontend UI & State Management (Next.js & Zustand):**
+    - เพิ่ม `updateUser` Action ใน [`src/store/useAuthStore.ts`](file:///c:/Users/phnjk/mueangsmart-back-office/frontend/src/store/useAuthStore.ts) ซิงค์ข้อมูลกับ `localStorage` แบบ Reactive
+    - สร้าง Component [`src/components/profile/ProfileModal.tsx`](file:///c:/Users/phnjk/mueangsmart-back-office/frontend/src/components/profile/ProfileModal.tsx) รองรับ Tab ข้อมูลทั่วไป (FullName, Email, Read-Only Username/Role) และ Tab เปลี่ยนรหัสผ่าน (Show/Hide Toggle)
+    - ผูกปุ่ม **"แก้ไขข้อมูลส่วนตัว"** ใน Header Avatar Dropdown [`src/components/layout/Header.tsx`](file:///c:/Users/phnjk/mueangsmart-back-office/frontend/src/components/layout/Header.tsx)
+
+### 2. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **Backend Unit Test:** พัฒนา [`internal/handler/auth_handler_test.go`](file:///c:/Users/phnjk/mueangsmart-back-office/backend/internal/handler/auth_handler_test.go) ทดสอบการแก้ไขโปรไฟล์, การเปลี่ยนรหัสผ่านด้วยรหัสผ่านเดิมที่ถูกต้อง (200 OK) และการปฏิเสธรหัสผ่านเดิมที่ไม่ถูกต้อง (400 Bad Request) ➔ ผ่าน 100%
+- **Backend Quality:** `go vet ./...` ผ่าน 100% (0 errors)
+- **Frontend Quality:** `npx tsc --noEmit` ผ่าน 100% (0 errors)
+
+---
+
+## [1.0.0-rc.19] - 2026-08-26
+
+### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
+- **Executive Role Access Lock for Module Management (/modules) - Dual-Layer Protection:**
+  - **Backend Layer (Go Fiber v3 RBAC & Middleware):**
+    - แก้ไขโครงสร้าง Route ใน [`internal/cmd/server/main.go`](file:///c:/Users/phnjk/mueangsmart-back-office/backend/cmd/server/main.go) ให้รองรับ Fiber v3 Handler & Middleware Ordering อย่างถูกต้อง
+    - กำหนด `middleware.RequirePermission(roleRepo, "Module", "Manage")` ครอบทุก Endpoint ของ `/api/v1/modules/management*`
+    - เพิ่ม Master Bypass สำหรับบทบาท `SuperAdmin` และบังคับใช้ Permission Validation อย่างเคร่งครัดใน [`pkg/middleware/auth_middleware.go`](file:///c:/Users/phnjk/mueangsmart-back-office/backend/pkg/middleware/auth_middleware.go)
+    - บล็อกบทบาท `Executive` ไม่ให้เข้าถึง API จัดการโมดูล โดยส่งคืนค่า **HTTP `403 Forbidden`**
+  - **Frontend Navigation & Page Guard Layer:**
+    - เพิ่มการซ่อนเมนู **"จัดการโมดูล (Module)"** ใน [`src/components/layout/Sidebar.tsx`](file:///c:/Users/phnjk/mueangsmart-back-office/frontend/src/components/layout/Sidebar.tsx) สำหรับผู้ใช้งาน Role `Executive` หรือ `ผู้บริหาร`
+    - เพิ่ม `restrictedRoles` prop ใน [`src/components/auth/ProtectedRoute.tsx`](file:///c:/Users/phnjk/mueangsmart-back-office/frontend/src/components/auth/ProtectedRoute.tsx)
+    - บล็อกการเข้าถึงหน้า [`src/app/modules/page.tsx`](file:///c:/Users/phnjk/mueangsmart-back-office/frontend/src/app/modules/page.tsx) โดยตรงผ่าน URL สำหรับ Executive และทำการ Redirect ไปยังหน้า `403 Access Denied` ทันที
+
+### 2. ผลการตรวจสอบความถูกต้อง (Verification & Tests)
+- **Backend Unit & Integration Test:** 
+  - [`internal/handler/module_management_handler_test.go`](file:///c:/Users/phnjk/mueangsmart-back-office/backend/internal/handler/module_management_handler_test.go) ทดสอบการเข้าถึงของ Executive ➔ คืนค่า **403 Forbidden** และ SuperAdmin ➔ **200 OK**
+  - [`internal/handler/city_handler_test.go`](file:///c:/Users/phnjk/mueangsmart-back-office/backend/internal/handler/city_handler_test.go) ทดสอบสิทธิ์ Executive สำหรับการสร้างเมือง (`POST /cities`), แก้ไขเมือง (`PUT /cities/:id`), เปลี่ยนสถานะเมือง (`PATCH /cities/:id/status`), สลับโมดูลเมือง (`PATCH /cities/:id/modules/:moduleId`) ➔ คืนค่า **403 Forbidden** ทั้งหมด และอนุญาตเฉพาะอ่านรายการเมือง (`GET /cities`) ➔ คืนค่า **200 OK**
+  - ผลรัน `go test ./...` ผ่าน 100%
+- **Backend Quality:** `go vet ./...` ผ่าน 100% (0 errors)
+- **Frontend Quality:** `npx tsc --noEmit` ผ่าน 100% (0 errors)
+
+---
+
 ## [1.0.0-rc.18] - 2026-08-25
 
 ### 1. รายละเอียดสิ่งที่พัฒนา (What was built)
