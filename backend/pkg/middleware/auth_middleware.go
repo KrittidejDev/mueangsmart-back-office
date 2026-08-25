@@ -45,16 +45,22 @@ func RequirePermission(roleRepo domain.RoleRepository, resource, action string) 
 		rawClaims := c.Locals(LocalSuperAdminClaims)
 		claims, ok := rawClaims.(*security.JWTClaims)
 		if !ok || claims == nil {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "unauthorized access context",
-			})
+			return fiber.NewError(fiber.StatusUnauthorized, "unauthorized access context")
+		}
+
+		role, err := roleRepo.FindByID(c.Context(), claims.RoleID)
+		if err == nil && role != nil {
+			if role.Name == "SuperAdmin" {
+				return c.Next()
+			}
+			if role.Name == "Admin" && (resource == "City" || resource == "Module") {
+				return c.Next()
+			}
 		}
 
 		hasPerm, err := roleRepo.HasPermission(c.Context(), claims.RoleID, resource, action)
 		if err != nil || !hasPerm {
-			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-				"error": "insufficient permissions for resource: " + resource + " action: " + action,
-			})
+			return fiber.NewError(fiber.StatusForbidden, "insufficient permissions for resource: "+resource+" action: "+action)
 		}
 
 		return c.Next()

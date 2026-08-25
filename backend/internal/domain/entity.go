@@ -25,19 +25,17 @@ type Municipality struct {
 	UpdatedDate time.Time `gorm:"column:UpdatedDate"`
 }
 
+
 func (Municipality) TableName() string {
 	return "Municipalities"
 }
 
 type MunicipalityModule struct {
-	Id             uuid.UUID `gorm:"column:Id;primaryKey;type:uuid;default:gen_random_uuid()"`
-	MunicipalityId uuid.UUID `gorm:"column:MunicipalityId;type:uuid"`
-	ModuleId       uuid.UUID `gorm:"column:ModuleId;type:uuid"`
-	IsActive       bool      `gorm:"column:IsActive"`
-	CreatedBy      string    `gorm:"column:CreatedBy;default:''"`
-	CreatedDate    time.Time `gorm:"column:CreatedDate;autoCreateTime"`
-	UpdatedBy      string    `gorm:"column:UpdatedBy;default:''"`
-	UpdatedDate    time.Time `gorm:"column:UpdatedDate;autoUpdateTime"`
+	MunicipalityId       uuid.UUID `gorm:"column:MunicipalityId;primaryKey;type:uuid"`
+	ModuleId             uuid.UUID `gorm:"column:ModuleId;primaryKey;type:uuid"`
+	DocumentNumberDigits *int      `gorm:"column:DocumentNumberDigits"`
+	PrefixDocument       *string   `gorm:"column:PrefixDocument"`
+	Sequence             *int      `gorm:"column:Sequence"`
 }
 
 func (MunicipalityModule) TableName() string {
@@ -45,13 +43,21 @@ func (MunicipalityModule) TableName() string {
 }
 
 type Module struct {
-	Id          uuid.UUID `gorm:"column:Id;primaryKey;type:uuid;default:gen_random_uuid()"`
-	NameTh      string    `gorm:"column:NameTh"`
-	NameEn      string    `gorm:"column:NameEn"`
-	Code        string    `gorm:"column:Code"`
-	Description string    `gorm:"column:Description"`
-	IsActive    bool      `gorm:"column:IsActive"`
-	CreatedDate time.Time `gorm:"column:CreatedDate"`
+	Id                                 uuid.UUID `gorm:"column:Id;primaryKey;type:uuid"`
+	NameTh                             string    `gorm:"column:NameTh"`
+	NameEn                             string    `gorm:"column:NameEn"`
+	CreatedBy                          string    `gorm:"column:CreatedBy"`
+	CreatedDate                        time.Time `gorm:"column:CreatedDate"`
+	UpdatedBy                          string    `gorm:"column:UpdatedBy"`
+	UpdatedDate                        time.Time `gorm:"column:UpdatedDate"`
+	IsUsedForUserRegistrationOnly       bool      `gorm:"column:IsUsedForUserRegistrationOnly"`
+	CanBeSelectedWithAdminUserSettings bool      `gorm:"column:CanBeSelectedWithAdminUserSettings"`
+	IsAdminOnly                        bool      `gorm:"column:IsAdminOnly"`
+	Sequence                           *int      `gorm:"column:Sequence"`
+	Key                                *string   `gorm:"column:Key"`
+	DashboardNameEn                    *string   `gorm:"column:DashboardNameEn"`
+	DashboardNameTh                    *string   `gorm:"column:DashboardNameTh"`
+	IsDashboard                        bool      `gorm:"column:IsDashboard"`
 }
 
 func (Module) TableName() string {
@@ -127,6 +133,23 @@ type AdminUserDepartment struct {
 func (AdminUserDepartment) TableName() string {
 	return "AdminUserDepartments"
 }
+
+type DepartmentModule struct {
+	Id           uuid.UUID `gorm:"column:Id;primaryKey;type:uuid;default:gen_random_uuid()"`
+	DepartmentId uuid.UUID `gorm:"column:DepartmentId;type:uuid"`
+	ModuleId     uuid.UUID `gorm:"column:ModuleId;type:uuid"`
+	CreatedBy    string    `gorm:"column:CreatedBy;default:''"`
+	CreatedDate  time.Time `gorm:"column:CreatedDate;autoCreateTime"`
+	UpdatedBy    string    `gorm:"column:UpdatedBy;default:''"`
+	UpdatedDate  time.Time `gorm:"column:UpdatedDate;autoUpdateTime"`
+}
+
+func (DepartmentModule) TableName() string {
+	return "DepartmentModules"
+}
+
+
+
 
 // --- Isolated SuperAdmin Back Office Entities (PascalCase Plural Pattern) ---
 

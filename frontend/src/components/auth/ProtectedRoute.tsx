@@ -12,9 +12,15 @@ interface ProtectedRouteProps {
     action: string;
   };
   superAdminOnly?: boolean;
+  restrictedRoles?: string[];
 }
 
-export function ProtectedRoute({ children, requiredPermission, superAdminOnly }: ProtectedRouteProps) {
+export function ProtectedRoute({
+  children,
+  requiredPermission,
+  superAdminOnly,
+  restrictedRoles,
+}: ProtectedRouteProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { isAuthenticated, user, hasHydrated, initAuth } = useAuthStore();
@@ -47,6 +53,11 @@ export function ProtectedRoute({ children, requiredPermission, superAdminOnly }:
       return;
     }
 
+    if (restrictedRoles && restrictedRoles.includes(roleName || "")) {
+      router.push("/403");
+      return;
+    }
+
     if (requiredPermission) {
       const hasPerm = user?.permissions?.some(
         (p) => p.resource === requiredPermission.resource && p.action === requiredPermission.action
@@ -55,12 +66,13 @@ export function ProtectedRoute({ children, requiredPermission, superAdminOnly }:
         router.push("/403");
       }
     }
-  }, [isAuthenticated, user, hasHydrated, router, pathname, requiredPermission, superAdminOnly]);
+  }, [isAuthenticated, user, hasHydrated, router, pathname, requiredPermission, superAdminOnly, restrictedRoles]);
 
   const isAuthorized = Boolean(
     hasHydrated &&
     isAuthenticated &&
     (!superAdminOnly || user?.roleName === "SuperAdmin") &&
+    (!restrictedRoles || !restrictedRoles.includes(user?.roleName || "")) &&
     (!requiredPermission || user?.roleName === "SuperAdmin" || user?.permissions?.some(
       (p) => p.resource === requiredPermission.resource && p.action === requiredPermission.action
     ))

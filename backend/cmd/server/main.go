@@ -2,9 +2,11 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
+	"github.com/gofiber/fiber/v3/middleware/limiter"
 	"github.com/gofiber/fiber/v3/middleware/logger"
 	"github.com/gofiber/fiber/v3/middleware/recover"
 
@@ -36,6 +38,15 @@ func main() {
 
 	app.Use(recover.New())
 	app.Use(logger.New())
+	app.Use(limiter.New(limiter.Config{
+		Max:        300,
+		Expiration: 1 * time.Minute,
+		LimitReached: func(c fiber.Ctx) error {
+			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+				"error": "Too many requests. Please try again later.",
+			})
+		},
+	}))
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: []string{"*"},
 		AllowHeaders: []string{"Origin, Content-Type, Accept, Authorization"},
@@ -60,6 +71,10 @@ func main() {
 		cityUseCase := usecase.NewCityUseCase(cityRepo, moduleRepo)
 		cityHandler := handler.NewCityHandler(cityUseCase)
 
+		moduleMgmtRepo := repository.NewModuleManagementRepository(db)
+		moduleMgmtUseCase := usecase.NewModuleManagementUseCase(moduleMgmtRepo)
+		moduleMgmtHandler := handler.NewModuleManagementHandler(moduleMgmtUseCase)
+
 		analyticsRepo := repository.NewAnalyticsRepository(db)
 		analyticsUseCase := usecase.NewAnalyticsUseCase(analyticsRepo)
 		analyticsHandler := handler.NewAnalyticsHandler(analyticsUseCase)
@@ -72,6 +87,7 @@ func main() {
 		authGroup.Post("/login", authHandler.Login)
 		protectedAuth := authGroup.Group("", middleware.AuthGuard(cfg.JWTSecret))
 		protectedAuth.Get("/me", authHandler.GetProfile)
+		protectedAuth.Put("/profile", authHandler.UpdateProfile)
 
 		usersGroup := api.Group("/super-admins", middleware.AuthGuard(cfg.JWTSecret), middleware.RequirePermission(roleRepo, "User", "Manage"))
 		usersGroup.Get("/", authHandler.GetAllUsers)
@@ -83,12 +99,22 @@ func main() {
 
 		citiesGroup := api.Group("/cities", middleware.AuthGuard(cfg.JWTSecret))
 		citiesGroup.Get("/", cityHandler.GetAllCities)
-		citiesGroup.Post("/", middleware.RequirePermission(roleRepo, "City", "Create"), cityHandler.CreateCity)
+		citiesGroup.Post("/", cityHandler.CreateCity, middleware.RequirePermission(roleRepo, "City", "Create"))
 		citiesGroup.Get("/:id", cityHandler.GetCityByID)
-		citiesGroup.Put("/:id", middleware.RequirePermission(roleRepo, "City", "Write"), cityHandler.UpdateCity)
-		citiesGroup.Patch("/:id/status", middleware.RequirePermission(roleRepo, "City", "Write"), cityHandler.UpdateCityStatus)
+		citiesGroup.Put("/:id", cityHandler.UpdateCity, middleware.RequirePermission(roleRepo, "City", "Write"))
+		citiesGroup.Patch("/:id/status", cityHandler.UpdateCityStatus, middleware.RequirePermission(roleRepo, "City", "Write"))
 		citiesGroup.Get("/:id/modules", cityHandler.GetCityModules)
-		citiesGroup.Patch("/:id/modules/:moduleId", middleware.RequirePermission(roleRepo, "Module", "Toggle"), cityHandler.ToggleCityModule)
+		citiesGroup.Get("/:id/statistics", cityHandler.GetCityStatistics)
+		citiesGroup.Patch("/:id/modules/:moduleId", cityHandler.ToggleCityModule, middleware.RequirePermission(roleRepo, "Module", "Toggle"))
+
+		modulesGroup := api.Group("/modules", middleware.AuthGuard(cfg.JWTSecret))
+		modulesGroup.Get("/", cityHandler.GetAllMasterModules)
+
+		moduleMgmtGroup := modulesGroup.Group("/management", middleware.RequirePermission(roleRepo, "Module", "Manage"))
+		moduleMgmtGroup.Get("/", moduleMgmtHandler.GetAllModules)
+		moduleMgmtGroup.Get("/:id", moduleMgmtHandler.GetModuleByID)
+		moduleMgmtGroup.Post("/", moduleMgmtHandler.CreateModule)
+		moduleMgmtGroup.Put("/:id", moduleMgmtHandler.UpdateModule)
 
 		analyticsGroup := api.Group("/analytics", middleware.AuthGuard(cfg.JWTSecret))
 		analyticsGroup.Get("/overview", analyticsHandler.GetOverview)
@@ -98,6 +124,15 @@ func main() {
 
 		auditGroup := api.Group("/audit-logs", middleware.AuthGuard(cfg.JWTSecret), middleware.RequirePermission(roleRepo, "AuditLog", "Read"))
 		auditGroup.Get("/", auditHandler.GetAuditLogs)
+
+		assetHandler := handler.NewAssetHandler(cfg)
+		app.Get("/assets/:id", assetHandler.GetAsset)
+		api.Get("/assets/:id", assetHandler.GetAsset)
+
+		assetsGroup := api.Group("/assets", middleware.AuthGuard(cfg.JWTSecret))
+		assetsGroup.Post("/upload", assetHandler.UploadAsset)
+		assetsGroup.Post("/delete", assetHandler.DeleteAsset)
+		assetsGroup.Delete("/:id", assetHandler.DeleteAsset)
 	}
 
 	log.Printf("Starting MueangSmart Back Office Fiber v3 backend on port %s (%s)", cfg.AppPort, cfg.AppEnv)

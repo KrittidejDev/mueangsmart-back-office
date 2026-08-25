@@ -23,9 +23,19 @@ import {
   Trash2, 
   Camera, 
   Waves, 
-  CloudRain 
+  CloudRain,
+  Layers,
+  Building2,
+  CheckCircle2,
+  Landmark,
+  User,
+  Lock,
+  Eye,
+  EyeOff
 } from "lucide-react";
-import { City } from "@/hooks/useCities";
+import { City, ModuleStatus } from "@/hooks/useCities";
+import { api } from "@/lib/api";
+import { resolveImageUrl } from "@/lib/image";
 
 export interface CityFormModalProps {
   isOpen: boolean;
@@ -58,28 +68,63 @@ function ToggleSwitch({ checked, onChange }: ToggleSwitchProps) {
   );
 }
 
+function getDynamicModuleIcon(nameTh: string = "", code: string = "") {
+  const text = (nameTh + " " + code).toLowerCase();
+  if (text.includes("ติดเตียง") || text.includes("bedridden")) return Bed;
+  if (text.includes("สูงอายุ") || text.includes("elderly") || text.includes("พิการ") || text.includes("disabled")) return HeartHandshake;
+  if (text.includes("ภาษี") || text.includes("tax")) return CreditCard;
+  if (text.includes("ยืนยัน") || text.includes("verify")) return ShieldCheck;
+  if (text.includes("ประชาสัมพันธ์") || text.includes("public")) return Megaphone;
+  if (text.includes("ศูนย์ร้องทุกข์") || text.includes("complaint center")) return Truck;
+  if (text.includes("ร้องทุกข์") || text.includes("complaint")) return MessageSquare;
+  if (text.includes("สุนัข") || text.includes("แมว") || text.includes("pet")) return Heart;
+  if (text.includes("แจ้งเตือน") || text.includes("notification") || text.includes("alert")) return Bell;
+  if (text.includes("ขยะ") || text.includes("waste")) return Trash2;
+  if (text.includes("กล้อง") || text.includes("cctv")) return Camera;
+  if (text.includes("ระดับน้ำ") || text.includes("river") || text.includes("water")) return Waves;
+  if (text.includes("ฟ้าฝน") || text.includes("weather") || text.includes("fahfon")) return CloudRain;
+  if (text.includes("จัดการเมือง") || text.includes("back office")) return Building2;
+  return Layers;
+}
+
+
+
 function CityFormModalContent({
   onClose,
   mode,
   cityData,
   onSave,
 }: Omit<CityFormModalProps, "isOpen">) {
+
   const isEdit = mode === "edit" && !!cityData;
 
-  const [logoPreview, setLogoPreview] = useState<string>(() =>
-    isEdit ? cityData.logo_url || (cityData.name_th?.includes("ฟ้าฝน") ? "/images/logo_fahfon.jpeg" : "") : ""
-  );
-  const [stampPreview, setStampPreview] = useState<string>(() =>
-    isEdit ? cityData.stamp_url || (cityData.name_th?.includes("ฟ้าฝน") ? "/images/stamp_fahfon.png" : "") : ""
-  );
+  const [logoPreview, setLogoPreview] = useState<string>(() => {
+    if (!isEdit || !cityData?.logo_url) {
+      return "";
+    }
+    if (cityData.logo_url.startsWith("blob:") || cityData.logo_url.startsWith("data:")) {
+      return "";
+    }
+    return cityData.logo_url;
+  });
+  const [logoAssetId, setLogoAssetId] = useState<string>(() => {
+    if (
+      !isEdit ||
+      !cityData?.logo_url ||
+      cityData.logo_url.startsWith("blob:") ||
+      cityData.logo_url.startsWith("data:")
+    ) {
+      return "";
+    }
+    return cityData.logo_url;
+  });
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const [nameTh, setNameTh] = useState(() => (isEdit ? cityData.name_th || "" : ""));
   const [nameEn, setNameEn] = useState(() => (isEdit ? cityData.name_en || "" : ""));
   const [addressTh, setAddressTh] = useState(() => (isEdit ? cityData.address_th || "" : ""));
   const [addressEn, setAddressEn] = useState(() => (isEdit ? cityData.address_en || "" : ""));
-  const [phone, setPhone] = useState(() =>
-    isEdit ? cityData.phone || "02-123-4567, 02-515-2458" : ""
-  );
+  const [phone, setPhone] = useState(() => (isEdit ? cityData.phone || "" : ""));
   const [status, setStatus] = useState(() =>
     isEdit
       ? cityData.status === "ไม่ใช้งาน" || cityData.status === "Inactive"
@@ -102,27 +147,60 @@ function CityFormModalContent({
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
 
-  const [modBedridden, setModBedridden] = useState(true);
-  const [modElderlyDisabled, setModElderlyDisabled] = useState(true);
-  const [modOnlineTax, setModOnlineTax] = useState(true);
-  const [modIdentityVerification, setModIdentityVerification] = useState(true);
-  const [modPublicRelations, setModPublicRelations] = useState(true);
-
-  const [modComplaintCenter, setModComplaintCenter] = useState(true);
-  const [modComplaints, setModComplaints] = useState(true);
-  const [modPetHealth, setModPetHealth] = useState(true);
-  const [modNotifications, setModNotifications] = useState(true);
-
-  const [modWasteFee, setModWasteFee] = useState(true);
+  const [dynamicModules, setDynamicModules] = useState<ModuleStatus[]>([]);
+  const [loadingModules, setLoadingModules] = useState(true);
   const [modWasteFeeSystem, setModWasteFeeSystem] = useState<"old" | "new">("old");
+  const [modFahFonUuid, setModFahFonUuid] = useState("");
 
-  const [modCctv, setModCctv] = useState(false);
-  const [modWaterLevel, setModWaterLevel] = useState(false);
-  const [modFahFon, setModFahFon] = useState(false);
-  const [modFahFonUuid, setModFahFonUuid] = useState("550e8400-e29b-41d4-a716-446655440000");
+  // Bank Details state (pre-filled from cityData in edit mode)
+  const [bankName, setBankName] = useState(() => isEdit ? cityData?.bank_name || "" : "");
+  const [bankAccountNumber, setBankAccountNumber] = useState(() => isEdit ? cityData?.bank_account_number || "" : "");
+  const [bankAccountName, setBankAccountName] = useState(() => isEdit ? cityData?.bank_account_name || "" : "");
+  const [bankBranch, setBankBranch] = useState(() => isEdit ? cityData?.bank_branch || "" : "");
+  const [bankType, setBankType] = useState(() => isEdit ? cityData?.bank_type || "ออมทรัพย์" : "ออมทรัพย์");
+
+  // Local Admin Account state (pre-filled from cityData in edit mode)
+  const [adminName, setAdminName] = useState(() => isEdit ? cityData?.admin_name || "" : "");
+  const [adminLastName, setAdminLastName] = useState(() => isEdit ? cityData?.admin_last_name || "" : "");
+  const [adminEmail, setAdminEmail] = useState(() => isEdit ? cityData?.admin_email || "" : "");
+  const [adminPhone, setAdminPhone] = useState(() => isEdit ? cityData?.admin_phone || "" : "");
+  const [adminPassword, setAdminPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
+
+  useEffect(() => {
+    async function loadBackendModules() {
+      setLoadingModules(true);
+      try {
+        if (isEdit && cityData?.id) {
+          const res = await api.get(`/cities/${cityData.id}/modules`);
+          if (res.data && Array.isArray(res.data)) {
+            setDynamicModules(res.data);
+          }
+        } else {
+          const res = await api.get("/modules");
+          if (res.data && Array.isArray(res.data)) {
+            setDynamicModules(res.data);
+          }
+        }
+      } catch {
+        // Handled gracefully
+      } finally {
+        setLoadingModules(false);
+      }
+    }
+    loadBackendModules();
+  }, [isEdit, cityData?.id]);
+
+  const handleToggleModule = (moduleId: string) => {
+    setDynamicModules((prev) =>
+      prev.map((mod) =>
+        mod.module_id === moduleId ? { ...mod, is_active: !mod.is_active } : mod
+      )
+    );
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -294,49 +372,126 @@ function CityFormModalContent({
     mapInstanceRef.current?.zoomOut();
   };
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setLogoPreview(URL.createObjectURL(file));
+      // Local preview immediately
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === "string") {
+          setLogoPreview(reader.result);
+        }
+      };
+      reader.readAsDataURL(file);
+
+      // Upload to MinIO/S3 FileRecords via backend /assets/upload
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("zone", "public");
+      formData.append("path", "logo-municipality");
+      if (isEdit && cityData?.id) {
+        formData.append("municipalityId", cityData.id);
+      }
+
+      try {
+        setUploadingLogo(true);
+        const res = await api.post("/assets/upload", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        if (res.data?.id) {
+          setLogoAssetId(res.data.id);
+        }
+      } catch (err) {
+        console.error("Asset upload error", err);
+        setFormError("เกิดข้อผิดพลาดในการอัปโหลดรูปภาพขึ้นระบบ S3");
+      } finally {
+        setUploadingLogo(false);
+      }
     }
   };
 
-  const handleStampChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setStampPreview(URL.createObjectURL(file));
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (uploadingLogo) {
+      setFormError("ระบบกำลังอัปโหลดโลโก้ขึ้นคลาวด์ กรุณารอสักครู่...");
+      return;
+    }
+    if (!logoPreview && !logoAssetId) {
+      setFormError("กรุณาอัปโหลดโลโก้เทศบาล");
+      return;
+    }
     if (!nameTh.trim()) {
       setFormError("กรุณากรอกชื่อเทศบาล (ภาษาไทย)");
+      return;
+    }
+    if (!nameEn.trim()) {
+      setFormError("กรุณากรอกชื่อเทศบาล (ภาษาอังกฤษ)");
       return;
     }
     if (!addressTh.trim()) {
       setFormError("กรุณากรอกที่อยู่ติดต่อ (ภาษาไทย)");
       return;
     }
+    if (!addressEn.trim()) {
+      setFormError("กรุณากรอกที่อยู่ติดต่อ (ภาษาอังกฤษ)");
+      return;
+    }
     if (!phone.trim()) {
       setFormError("กรุณากรอกเบอร์ติดต่อ");
+      return;
+    }
+    if (!status) {
+      setFormError("กรุณาเลือกสถานะเมือง");
+      return;
+    }
+    if (latitude === undefined || latitude === null || isNaN(Number(latitude))) {
+      setFormError("กรุณาระบุพิกัดละติจูด (Latitude)");
+      return;
+    }
+    if (longitude === undefined || longitude === null || isNaN(Number(longitude))) {
+      setFormError("กรุณาระบุพิกัดลองจิจูด (Longitude)");
       return;
     }
     setFormError("");
     setSaving(true);
 
     try {
+      const selectedModuleIds = dynamicModules
+        .filter((m) => m.is_active)
+        .map((m) => m.module_id);
+
+      const finalLogoUrl =
+        logoAssetId ||
+        (logoPreview &&
+        !logoPreview.startsWith("data:") &&
+        !logoPreview.startsWith("blob:")
+          ? logoPreview
+          : undefined);
+
       const success = await onSave({
         name_th: nameTh,
         name_en: nameEn,
         address_th: addressTh,
         address_en: addressEn,
         phone: phone,
-        status: status === "Active" ? "ใช้งาน" : "ไม่ใช้งาน",
+        status: status === "Active" ? "Active" : "Inactive",
         latitude: Number(latitude),
         longitude: Number(longitude),
-        modules_count: 8,
-        active_modules_count: 8,
+        logo_url: finalLogoUrl,
+        selected_module_ids: selectedModuleIds,
+        // Bank Details
+        bank_name: bankName,
+        bank_account_number: bankAccountNumber,
+        bank_account_name: bankAccountName,
+        bank_branch: bankBranch,
+        bank_type: bankType,
+        // Local Admin Account
+        admin_name: adminName,
+        admin_last_name: adminLastName,
+        admin_email: adminEmail,
+        admin_phone: adminPhone,
+        admin_password: adminPassword,
       });
 
       if (success) {
@@ -387,94 +542,52 @@ function CityFormModalContent({
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  อัปโหลดโลโก้เทศบาล <span className="text-red-500">*</span>
-                </label>
-                {logoPreview ? (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="border border-slate-200 bg-slate-50/80 rounded-2xl p-3 flex flex-col items-center justify-center h-28 relative">
-                      <Image 
-                        src={logoPreview} 
-                        alt="Logo Preview" 
-                        width={80} 
-                        height={80} 
-                        unoptimized 
-                        className="max-h-20 object-contain rounded-lg" 
-                      />
-                    </div>
-
-                    <label className="border-2 border-dashed border-slate-200 hover:border-brand-primary bg-slate-50/50 hover:bg-brand-light/30 rounded-2xl p-3 flex flex-col items-center justify-center text-center transition-all cursor-pointer h-28 block">
-                      <input type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
-                      <div className="w-8 h-8 rounded-full bg-brand-light text-brand-primary flex items-center justify-center mb-1 border border-brand-primary/20 shrink-0">
-                        <UploadCloud className="w-4 h-4" />
-                      </div>
-                      <p className="text-xs font-bold text-slate-800 leading-none">เปลี่ยนโลโก้</p>
-                      <p className="text-[11px] text-slate-400 mt-1.5 leading-tight">
-                        รองรับไฟล์ .jpg, .png<br />
-                        (ขนาดไม่เกิน 2MB)
-                      </p>
-                    </label>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                อัปโหลดโลโก้เทศบาล <span className="text-red-500">*</span>
+              </label>
+              {logoPreview ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="border border-slate-200 bg-slate-50/80 rounded-2xl p-3 flex flex-col items-center justify-center h-28 relative">
+                    <Image 
+                      src={resolveImageUrl(logoPreview)} 
+                      alt="Logo Preview" 
+                      width={80} 
+                      height={80} 
+                      unoptimized 
+                      className="max-h-20 object-contain rounded-lg" 
+                    />
                   </div>
-                ) : (
-                  <label className="border-2 border-dashed border-slate-200 hover:border-brand-primary bg-slate-50/50 hover:bg-brand-light/30 rounded-2xl p-4 text-center transition-all cursor-pointer block h-28 flex flex-col items-center justify-center">
-                    <input type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
+
+                  <label className="border-2 border-dashed border-slate-200 hover:border-brand-primary bg-slate-50/50 hover:bg-brand-light/30 rounded-2xl p-3 flex flex-col items-center justify-center text-center transition-all cursor-pointer h-28 block">
+                    <input type="file" accept="image/*" className="hidden" disabled={uploadingLogo} onChange={handleLogoChange} />
                     <div className="w-8 h-8 rounded-full bg-brand-light text-brand-primary flex items-center justify-center mb-1 border border-brand-primary/20 shrink-0">
-                      <UploadCloud className="w-4 h-4" />
+                      {uploadingLogo ? <Loader2 className="w-4 h-4 animate-spin text-brand-primary" /> : <UploadCloud className="w-4 h-4" />}
                     </div>
-                    <p className="text-xs sm:text-sm font-bold text-slate-700 leading-none">คลิกเพื่ออัปโหลด</p>
+                    <p className="text-xs font-bold text-slate-800 leading-none">
+                      {uploadingLogo ? "กำลังอัปโหลด..." : "เปลี่ยนโลโก้"}
+                    </p>
                     <p className="text-[11px] text-slate-400 mt-1.5 leading-tight">
                       รองรับไฟล์ .jpg, .png<br />
                       (ขนาดไม่เกิน 2MB)
                     </p>
                   </label>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  อัปโหลดตรายาง <span className="text-slate-400 font-normal">(สำหรับใช้ในใบเสร็จรับเงิน)</span>
-                </label>
-                {stampPreview ? (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="border border-slate-200 bg-slate-50/80 rounded-2xl p-3 flex flex-col items-center justify-center h-28 relative">
-                      <Image 
-                        src={stampPreview} 
-                        alt="Stamp Preview" 
-                        width={80} 
-                        height={80} 
-                        unoptimized 
-                        className="max-h-20 object-contain rounded-lg" 
-                      />
-                    </div>
-
-                    <label className="border-2 border-dashed border-slate-200 hover:border-brand-primary bg-slate-50/50 hover:bg-brand-light/30 rounded-2xl p-3 flex flex-col items-center justify-center text-center transition-all cursor-pointer h-28 block">
-                      <input type="file" accept="image/*" className="hidden" onChange={handleStampChange} />
-                      <div className="w-8 h-8 rounded-full bg-brand-light text-brand-primary flex items-center justify-center mb-1 border border-brand-primary/20 shrink-0">
-                        <UploadCloud className="w-4 h-4" />
-                      </div>
-                      <p className="text-xs font-bold text-slate-800 leading-none">เปลี่ยนตรายาง</p>
-                      <p className="text-[11px] text-slate-400 mt-1.5 leading-tight">
-                        รองรับไฟล์ .jpg, .png<br />
-                        (ขนาดไม่เกิน 2MB)
-                      </p>
-                    </label>
+                </div>
+              ) : (
+                <label className="border-2 border-dashed border-slate-200 hover:border-brand-primary bg-slate-50/50 hover:bg-brand-light/30 rounded-2xl p-4 text-center transition-all cursor-pointer block h-28 flex flex-col items-center justify-center">
+                  <input type="file" accept="image/*" className="hidden" disabled={uploadingLogo} onChange={handleLogoChange} />
+                  <div className="w-8 h-8 rounded-full bg-brand-light text-brand-primary flex items-center justify-center mb-1 border border-brand-primary/20 shrink-0">
+                    {uploadingLogo ? <Loader2 className="w-4 h-4 animate-spin text-brand-primary" /> : <UploadCloud className="w-4 h-4" />}
                   </div>
-                ) : (
-                  <label className="border-2 border-dashed border-slate-200 hover:border-brand-primary bg-slate-50/50 hover:bg-brand-light/30 rounded-2xl p-4 text-center transition-all cursor-pointer block h-28 flex flex-col items-center justify-center">
-                    <input type="file" accept="image/*" className="hidden" onChange={handleStampChange} />
-                    <div className="w-8 h-8 rounded-full bg-brand-light text-brand-primary flex items-center justify-center mb-1 border border-brand-primary/20 shrink-0">
-                      <UploadCloud className="w-4 h-4" />
-                    </div>
-                    <p className="text-xs sm:text-sm font-bold text-slate-700 leading-none">คลิกเพื่ออัปโหลด</p>
-                    <p className="text-[11px] text-slate-400 mt-1.5 leading-tight">
-                      รองรับไฟล์ .jpg, .png<br />
-                      (ขนาดไม่เกิน 2MB)
-                    </p>
-                  </label>
-                )}
-              </div>
+                  <p className="text-xs sm:text-sm font-bold text-slate-700 leading-none">
+                    {uploadingLogo ? "กำลังอัปโหลด..." : "คลิกเพื่ออัปโหลด"}
+                  </p>
+                  <p className="text-[11px] text-slate-400 mt-1.5 leading-tight">
+                    รองรับไฟล์ .jpg, .png<br />
+                    (ขนาดไม่เกิน 2MB)
+                  </p>
+                </label>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
@@ -693,180 +806,265 @@ function CityFormModalContent({
               </div>
             </div>
 
+            {/* Bank Details Section */}
+            <div className="bg-slate-50/70 rounded-3xl p-5 sm:p-6 border border-slate-200/80 space-y-5">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100">
+                    <Landmark className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">ข้อมูลบัญชีธนาคาร</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">สำหรับรับชำระค่าธรรมเนียมและบริการของเทศบาล (ถ้ามี)</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">ชื่อธนาคาร</label>
+                    <input
+                      type="text"
+                      placeholder="เช่น ธนาคารกรุงไทย (KTB)"
+                      value={bankName}
+                      onChange={(e) => setBankName(e.target.value)}
+                      className="w-full bg-white border border-slate-200 focus:border-emerald-400 focus:bg-white rounded-2xl py-2.5 px-4 text-xs sm:text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">เลขที่บัญชี</label>
+                    <input
+                      type="text"
+                      placeholder="เช่น 999-9-99999-9"
+                      value={bankAccountNumber}
+                      onChange={(e) => setBankAccountNumber(e.target.value)}
+                      className="w-full bg-white border border-slate-200 focus:border-emerald-400 focus:bg-white rounded-2xl py-2.5 px-4 text-xs sm:text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">ชื่อบัญชี</label>
+                    <input
+                      type="text"
+                      placeholder="เช่น เทศบาลตำบลศาลาแดง"
+                      value={bankAccountName}
+                      onChange={(e) => setBankAccountName(e.target.value)}
+                      className="w-full bg-white border border-slate-200 focus:border-emerald-400 focus:bg-white rounded-2xl py-2.5 px-4 text-xs sm:text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">สาขา</label>
+                    <input
+                      type="text"
+                      placeholder="เช่น สาขาฉะเชิงเทรา"
+                      value={bankBranch}
+                      onChange={(e) => setBankBranch(e.target.value)}
+                      className="w-full bg-white border border-slate-200 focus:border-emerald-400 focus:bg-white rounded-2xl py-2.5 px-4 text-xs sm:text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400"
+                    />
+                  </div>
+                </div>
+
+                <div className="max-w-xs">
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">ประเภทบัญชี</label>
+                  <select
+                    value={bankType}
+                    onChange={(e) => setBankType(e.target.value)}
+                    className="w-full bg-white border border-slate-200 focus:border-emerald-400 rounded-2xl py-2.5 px-4 text-xs sm:text-sm text-slate-900 outline-none transition-all appearance-none cursor-pointer"
+                  >
+                    <option value="ออมทรัพย์">ออมทรัพย์</option>
+                    <option value="กระแสรายวัน">กระแสรายวัน</option>
+                    <option value="ฝากประจำ">ฝากประจำ</option>
+                  </select>
+                </div>
+              </div>
+
+            {/* Local Admin Account Section */}
+            <div className="bg-slate-50/70 rounded-3xl p-5 sm:p-6 border border-slate-200/80 space-y-5">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-violet-50 text-violet-600 rounded-xl border border-violet-100">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">บัญชีผู้ดูแลระบบเทศบาล</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">บัญชี SuperAdmin เริ่มต้นสำหรับจัดการเมืองนี้ในแอปพลิเคชัน (ถ้ามี)</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">ชื่อ</label>
+                    <input
+                      type="text"
+                      placeholder="เช่น สมชาย"
+                      value={adminName}
+                      onChange={(e) => setAdminName(e.target.value)}
+                      className="w-full bg-white border border-slate-200 focus:border-violet-400 focus:bg-white rounded-2xl py-2.5 px-4 text-xs sm:text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">นามสกุล</label>
+                    <input
+                      type="text"
+                      placeholder="เช่น ใจดี"
+                      value={adminLastName}
+                      onChange={(e) => setAdminLastName(e.target.value)}
+                      className="w-full bg-white border border-slate-200 focus:border-violet-400 focus:bg-white rounded-2xl py-2.5 px-4 text-xs sm:text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">อีเมล</label>
+                    <input
+                      type="email"
+                      placeholder="เช่น admin@fahfon.info"
+                      value={adminEmail}
+                      onChange={(e) => setAdminEmail(e.target.value)}
+                      className="w-full bg-white border border-slate-200 focus:border-violet-400 focus:bg-white rounded-2xl py-2.5 px-4 text-xs sm:text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">เบอร์โทรศัพท์</label>
+                    <input
+                      type="text"
+                      placeholder="เช่น 0812345678"
+                      value={adminPhone}
+                      onChange={(e) => setAdminPhone(e.target.value)}
+                      className="w-full bg-white border border-slate-200 focus:border-violet-400 focus:bg-white rounded-2xl py-2.5 px-4 text-xs sm:text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400"
+                    />
+                  </div>
+                </div>
+
+                <div className="max-w-sm">
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    {isEdit ? "เปลี่ยนรหัสผ่าน" : "รหัสผ่านเริ่มต้น"}
+                    <span className="ml-1.5 font-normal text-slate-400">
+                      {isEdit ? "(ปล่อยว่างเพื่อคงรหัสผ่านเดิม)" : "(ปล่อยว่างเพื่อใช้รหัสอัตโนมัติ)"}
+                    </span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder={isEdit ? "กรอกรหัสผ่านใหม่" : "ตั้งรหัสผ่านเริ่มต้น"}
+                      value={adminPassword}
+                      onChange={(e) => setAdminPassword(e.target.value)}
+                      className="w-full bg-white border border-slate-200 focus:border-violet-400 focus:bg-white rounded-2xl py-2.5 px-4 pr-10 text-xs sm:text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((p) => !p)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    <Lock className="w-3 h-3 inline mr-0.5 mb-0.5" />
+                    รหัสผ่านจะถูก Hash ด้วย bcrypt ก่อนบันทึกลงฐานข้อมูล
+                  </p>
+                </div>
+              </div>
+
+
             <div className="bg-slate-50/70 rounded-3xl p-5 sm:p-6 border border-slate-200/80 space-y-6">
-              <h3 className="text-base sm:text-lg font-bold text-slate-900">โมดูลทั้งหมด</h3>
-
-              <div className="space-y-2.5">
-                <h4 className="text-xs font-bold text-slate-500">โมดูลหลัก (พื้นฐาน)</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-white rounded-2xl p-4 border border-slate-200/80 space-y-3.5 shadow-2xs">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800">
-                        <Bed className="w-4 h-4 text-brand-primary" />
-                        <span>ผู้ป่วยติดเตียง</span>
-                      </div>
-                      <ToggleSwitch checked={modBedridden} onChange={setModBedridden} />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800">
-                        <HeartHandshake className="w-4 h-4 text-brand-primary" />
-                        <span>ผู้สูงอายุและผู้พิการ</span>
-                      </div>
-                      <ToggleSwitch checked={modElderlyDisabled} onChange={setModElderlyDisabled} />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800">
-                        <CreditCard className="w-4 h-4 text-brand-primary" />
-                        <span>จ่ายภาษีออนไลน์</span>
-                      </div>
-                      <ToggleSwitch checked={modOnlineTax} onChange={setModOnlineTax} />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800">
-                        <ShieldCheck className="w-4 h-4 text-brand-primary" />
-                        <span>ยืนยันตัวตน</span>
-                      </div>
-                      <ToggleSwitch checked={modIdentityVerification} onChange={setModIdentityVerification} />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800">
-                        <Megaphone className="w-4 h-4 text-brand-primary" />
-                        <span>ประชาสัมพันธ์</span>
-                      </div>
-                      <ToggleSwitch checked={modPublicRelations} onChange={setModPublicRelations} />
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-2xl p-4 border border-slate-200/80 space-y-3.5 shadow-2xs">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800">
-                        <Truck className="w-4 h-4 text-brand-primary" />
-                        <span>ศูนย์ร้องทุกข์ร้องเรียน</span>
-                      </div>
-                      <ToggleSwitch checked={modComplaintCenter} onChange={setModComplaintCenter} />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800">
-                        <MessageSquare className="w-4 h-4 text-brand-primary" />
-                        <span>ร้องทุกข์ร้องเรียน</span>
-                      </div>
-                      <ToggleSwitch checked={modComplaints} onChange={setModComplaints} />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800">
-                        <Heart className="w-4 h-4 text-brand-primary" />
-                        <span>สุขภาพสุนัขและแมว</span>
-                      </div>
-                      <ToggleSwitch checked={modPetHealth} onChange={setModPetHealth} />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800">
-                        <Bell className="w-4 h-4 text-brand-primary" />
-                        <span>การแจ้งเตือน</span>
-                      </div>
-                      <ToggleSwitch checked={modNotifications} onChange={setModNotifications} />
-                    </div>
-                  </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900">โมดูลทั้งหมด</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">เลือกเปิด/ปิดโมดูลการทำงานสำหรับเทศบาลนี้ (เชื่อมต่อสดจากระบบ)</p>
                 </div>
+                {loadingModules && (
+                  <div className="flex items-center gap-2 text-xs font-semibold text-brand-primary bg-brand-primary/10 px-3 py-1.5 rounded-full">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>กำลังโหลดโมดูล...</span>
+                  </div>
+                )}
               </div>
 
-              <div className="space-y-2.5">
-                <h4 className="text-xs font-bold text-slate-500">โมดูลเลือกระบบ</h4>
+              {dynamicModules.length === 0 && !loadingModules ? (
+                <div className="text-center py-6 text-xs text-slate-400">ไม่พบรายการโมดูลในระบบ</div>
+              ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-white rounded-2xl p-4 border border-slate-200/80 space-y-3.5 shadow-2xs">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800">
-                        <Trash2 className="w-4 h-4 text-emerald-600" />
-                        <span>ค่าธรรมเนียมขยะ</span>
-                      </div>
-                      <ToggleSwitch checked={modWasteFee} onChange={setModWasteFee} />
-                    </div>
+                  {dynamicModules.map((mod) => {
+                    const IconComp = getDynamicModuleIcon(mod.name_th, mod.code);
+                    const isWasteModule = mod.name_th.includes("ขยะ") || mod.code.includes("WASTE");
+                    const isFahFonModule = mod.name_th.includes("ฟ้าฝน") || mod.code.includes("FAHFON");
 
-                    <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50">
-                      <span className="px-3 py-2 text-xs font-semibold text-slate-500 bg-slate-100 border-r border-slate-200 whitespace-nowrap select-none">
-                        ตั้งค่าระบบ
-                      </span>
-                      <div className="flex-1 flex items-center justify-around px-3 py-1.5 bg-white">
-                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                          <input
-                            type="radio"
-                            name="wasteSystem"
-                            value="old"
-                            checked={modWasteFeeSystem === "old"}
-                            onChange={() => setModWasteFeeSystem("old")}
-                            className="w-4 h-4 text-brand-primary accent-brand-primary cursor-pointer rounded-full outline-none focus:outline-none focus:ring-0 focus:ring-offset-0"
-                          />
-                          <span className="text-xs font-semibold text-slate-700">ระบบเก่า</span>
-                        </label>
-                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                          <input
-                            type="radio"
-                            name="wasteSystem"
-                            value="new"
-                            checked={modWasteFeeSystem === "new"}
-                            onChange={() => setModWasteFeeSystem("new")}
-                            className="w-4 h-4 text-brand-primary accent-brand-primary cursor-pointer rounded-full outline-none focus:outline-none focus:ring-0 focus:ring-offset-0"
-                          />
-                          <span className="text-xs font-semibold text-slate-700">ระบบใหม่</span>
-                        </label>
+                    return (
+                      <div
+                        key={mod.module_id}
+                        className={`bg-white rounded-2xl p-4 border transition-all shadow-2xs space-y-3.5 ${
+                          mod.is_active ? "border-brand-primary/40 shadow-sm" : "border-slate-200/80 opacity-75"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800">
+                            <div className={`p-2 rounded-xl ${mod.is_active ? "bg-brand-primary/10 text-brand-primary" : "bg-slate-100 text-slate-400"}`}>
+                              <IconComp className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span>{mod.name_th}</span>
+                                {mod.is_active && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
+                              </div>
+                              {mod.name_en && <p className="text-[10px] text-slate-400 font-normal">{mod.name_en}</p>}
+                            </div>
+                          </div>
+                          <ToggleSwitch checked={mod.is_active} onChange={() => handleToggleModule(mod.module_id)} />
+                        </div>
+
+                        {/* Configurable sub-options if applicable */}
+                        {isWasteModule && mod.is_active && (
+                          <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50">
+                            <span className="px-3 py-2 text-xs font-semibold text-slate-500 bg-slate-100 border-r border-slate-200 whitespace-nowrap select-none">
+                              ตั้งค่าระบบ
+                            </span>
+                            <div className="flex-1 flex items-center justify-around px-3 py-1.5 bg-white">
+                              <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                                <input
+                                  type="radio"
+                                  name="wasteSystem"
+                                  value="old"
+                                  checked={modWasteFeeSystem === "old"}
+                                  onChange={() => setModWasteFeeSystem("old")}
+                                  className="w-4 h-4 text-brand-primary accent-brand-primary cursor-pointer rounded-full outline-none focus:outline-none focus:ring-0 focus:ring-offset-0"
+                                />
+                                <span className="text-xs font-semibold text-slate-700">ระบบเก่า</span>
+                              </label>
+                              <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                                <input
+                                  type="radio"
+                                  name="wasteSystem"
+                                  value="new"
+                                  checked={modWasteFeeSystem === "new"}
+                                  onChange={() => setModWasteFeeSystem("new")}
+                                  className="w-4 h-4 text-brand-primary accent-brand-primary cursor-pointer rounded-full outline-none focus:outline-none focus:ring-0 focus:ring-offset-0"
+                                />
+                                <span className="text-xs font-semibold text-slate-700">ระบบใหม่</span>
+                              </label>
+                            </div>
+                          </div>
+                        )}
+
+                        {isFahFonModule && mod.is_active && (
+                          <div className="flex items-center border border-slate-200 focus-within:border-brand-primary focus-within:ring-3 focus-within:ring-brand-primary/15 rounded-xl overflow-hidden bg-slate-50/50 transition-all">
+                            <span className="px-3 py-2 text-xs font-semibold text-slate-500 bg-slate-100 border-r border-slate-200 whitespace-nowrap select-none shrink-0">
+                              UUID
+                            </span>
+                            <input
+                              type="text"
+                              placeholder="กรอก UUID ฟ้าฝน (Optional)"
+                              value={modFahFonUuid}
+                              onChange={(e) => setModFahFonUuid(e.target.value)}
+                              className="w-full bg-white py-1.5 px-3 text-xs text-slate-900 outline-none focus:outline-none focus:ring-0 focus:border-transparent placeholder:text-slate-400"
+                            />
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </div>
+                    );
+                  })}
                 </div>
-              </div>
-
-              <div className="space-y-2.5">
-                <h4 className="text-xs font-bold text-slate-500">โมดูลเสริม</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-white rounded-2xl p-4 border border-slate-200/80 space-y-3.5 shadow-2xs">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800">
-                        <Camera className="w-4 h-4 text-brand-primary" />
-                        <span>กล้องวงจรปิด</span>
-                      </div>
-                      <ToggleSwitch checked={modCctv} onChange={setModCctv} />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800">
-                        <Waves className="w-4 h-4 text-brand-primary" />
-                        <span>ข้อมูลระดับน้ำ</span>
-                      </div>
-                      <ToggleSwitch checked={modWaterLevel} onChange={setModWaterLevel} />
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-2xl p-4 border border-slate-200/80 space-y-3.5 shadow-2xs">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-800">
-                        <CloudRain className="w-4 h-4 text-brand-primary" />
-                        <span>ฟ้าฝน</span>
-                      </div>
-                      <ToggleSwitch checked={modFahFon} onChange={setModFahFon} />
-                    </div>
-
-                    <div className="flex items-center border border-slate-200 focus-within:border-brand-primary focus-within:ring-3 focus-within:ring-brand-primary/15 rounded-xl overflow-hidden bg-slate-50/50 transition-all">
-                      <span className="px-3 py-2 text-xs font-semibold text-slate-500 bg-slate-100 border-r border-slate-200 whitespace-nowrap select-none shrink-0">
-                        UUID
-                      </span>
-                      <input
-                        type="text"
-                        placeholder="กรอก UUID (Optional)"
-                        value={modFahFonUuid}
-                        onChange={(e) => setModFahFonUuid(e.target.value)}
-                        className="w-full bg-white py-1.5 px-3 text-xs text-slate-900 outline-none focus:outline-none focus:ring-0 focus:border-transparent placeholder:text-slate-400"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           </div>
 
@@ -908,7 +1106,7 @@ export function CityFormModal(props: CityFormModalProps) {
   if (!props.isOpen) return null;
   return (
     <CityFormModalContent
-      key={`${props.mode}-${props.cityData?.id || "new"}`}
+      key={`${props.mode}-${props.cityData?.id || "new"}-${props.cityData?.logo_url || ""}`}
       onClose={props.onClose}
       mode={props.mode}
       cityData={props.cityData}

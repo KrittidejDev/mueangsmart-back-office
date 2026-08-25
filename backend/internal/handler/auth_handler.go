@@ -59,6 +59,31 @@ func (h *AuthHandler) GetProfile(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(profile)
 }
 
+func (h *AuthHandler) UpdateProfile(c fiber.Ctx) error {
+	rawClaims := c.Locals(middleware.LocalSuperAdminClaims)
+	if rawClaims == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
+
+	claims, ok := rawClaims.(*security.JWTClaims)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid token claims"})
+	}
+
+	var req domain.UpdateProfileRequest
+	if err := c.Bind().JSON(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request payload"})
+	}
+
+	updatedBy := claims.Username
+	profile, err := h.authUseCase.UpdateProfile(c.Context(), claims.SuperAdminID, &req, updatedBy)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(profile)
+}
+
 func (h *AuthHandler) CreateUser(c fiber.Ctx) error {
 	var req domain.CreateSuperAdminRequest
 	if err := c.Bind().Body(&req); err != nil {

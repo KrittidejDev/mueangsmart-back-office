@@ -25,6 +25,15 @@ func (r *superAdminRepository) FindByUsername(ctx context.Context, username stri
 	return &admin, nil
 }
 
+func (r *superAdminRepository) FindByEmail(ctx context.Context, email string) (*domain.BoSuperAdmin, error) {
+	var admin domain.BoSuperAdmin
+	err := r.db.WithContext(ctx).Where("\"Email\" = ?", email).First(&admin).Error
+	if err != nil {
+		return nil, err
+	}
+	return &admin, nil
+}
+
 func (r *superAdminRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.BoSuperAdmin, error) {
 	var admin domain.BoSuperAdmin
 	err := r.db.WithContext(ctx).Where("\"Id\" = ?", id).First(&admin).Error
@@ -42,6 +51,10 @@ func (r *superAdminRepository) FindAll(ctx context.Context) ([]domain.BoSuperAdm
 
 func (r *superAdminRepository) Create(ctx context.Context, admin *domain.BoSuperAdmin) error {
 	return r.db.WithContext(ctx).Create(admin).Error
+}
+
+func (r *superAdminRepository) Update(ctx context.Context, admin *domain.BoSuperAdmin) error {
+	return r.db.WithContext(ctx).Save(admin).Error
 }
 
 func (r *superAdminRepository) Delete(ctx context.Context, id uuid.UUID) error {

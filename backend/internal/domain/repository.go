@@ -45,11 +45,20 @@ type CreateSuperAdminRequest struct {
 	RoleId   uuid.UUID `json:"role_id" validate:"required"`
 }
 
+type UpdateProfileRequest struct {
+	FullName        string `json:"full_name" validate:"required"`
+	Email           string `json:"email" validate:"required,email"`
+	CurrentPassword string `json:"current_password,omitempty"`
+	NewPassword     string `json:"new_password,omitempty"`
+}
+
 type SuperAdminRepository interface {
 	FindByUsername(ctx context.Context, username string) (*BoSuperAdmin, error)
+	FindByEmail(ctx context.Context, email string) (*BoSuperAdmin, error)
 	FindByID(ctx context.Context, id uuid.UUID) (*BoSuperAdmin, error)
 	FindAll(ctx context.Context) ([]BoSuperAdmin, error)
 	Create(ctx context.Context, admin *BoSuperAdmin) error
+	Update(ctx context.Context, admin *BoSuperAdmin) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
@@ -63,6 +72,7 @@ type RoleRepository interface {
 type AuthUseCase interface {
 	Login(ctx context.Context, username, password string) (*LoginResponse, error)
 	GetProfile(ctx context.Context, id uuid.UUID) (*SuperAdminProfileResponse, error)
+	UpdateProfile(ctx context.Context, id uuid.UUID, req *UpdateProfileRequest, updatedBy string) (*SuperAdminProfileResponse, error)
 	CreateUser(ctx context.Context, req *CreateSuperAdminRequest, createdBy string) error
 	DeleteUser(ctx context.Context, id, currentSuperAdminID uuid.UUID) error
 	GetUsers(ctx context.Context) ([]SuperAdminProfileResponse, error)

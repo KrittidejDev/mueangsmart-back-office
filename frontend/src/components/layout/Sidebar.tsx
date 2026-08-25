@@ -23,12 +23,13 @@ interface NavItem {
   href: string;
   icon: LucideIcon;
   superAdminOnly?: boolean;
+  hideForRoles?: string[];
 }
 
 const navItems: NavItem[] = [
   { name: "ภาพรวมสถิติ (Dashboard)", href: "/dashboard", icon: LayoutDashboard },
   { name: "จัดการเมือง (Multi-City)", href: "/cities", icon: Building2 },
-  { name: "จัดการโมดูล (Module)", href: "/modules", icon: LayoutGrid },
+  { name: "จัดการโมดูล (Module)", href: "/modules", icon: LayoutGrid, hideForRoles: ["Executive", "ผู้บริหาร"] },
   { name: "ผู้ดูแลระบบ SuperAdmin", href: "/super-admins", icon: ShieldCheck, superAdminOnly: true },
   { name: "ประวัติการใช้งาน (Audit Logs)", href: "/audit-logs", icon: ClipboardList, superAdminOnly: true },
 ];
@@ -80,26 +81,29 @@ export function Sidebar({ mobileOpen = false, setMobileOpen }: SidebarProps) {
     router.push("/login");
   };
 
+  let currentRole = "";
   let isSuperAdmin = false;
   if (mounted) {
-    isSuperAdmin = user?.roleName === "SuperAdmin";
-    if (!isSuperAdmin && typeof window !== "undefined") {
+    currentRole = user?.roleName || "";
+    if (!currentRole && typeof window !== "undefined") {
       try {
         const storedUser = localStorage.getItem("superadmin_user");
         if (storedUser) {
           const parsed = JSON.parse(storedUser);
-          if (parsed.roleName === "SuperAdmin") {
-            isSuperAdmin = true;
-          }
+          currentRole = parsed.roleName || "";
         }
       } catch {
       }
     }
+    isSuperAdmin = currentRole === "SuperAdmin";
   }
 
   const visibleNavItems = navItems.filter((item) => {
     if (!mounted) return true;
     if (item.superAdminOnly && !isSuperAdmin) {
+      return false;
+    }
+    if (item.hideForRoles && item.hideForRoles.includes(currentRole)) {
       return false;
     }
     return true;

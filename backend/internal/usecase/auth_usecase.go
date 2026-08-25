@@ -109,6 +109,59 @@ func (u *authUseCase) GetProfile(ctx context.Context, superAdminID uuid.UUID) (*
 	}, nil
 }
 
+func (u *authUseCase) UpdateProfile(ctx context.Context, id uuid.UUID, req *domain.UpdateProfileRequest, updatedBy string) (*domain.SuperAdminProfileResponse, error) {
+	admin, err := u.adminRepo.FindByID(ctx, id)
+	if err != nil {
+		return nil, errors.New("user account not found")
+	}
+
+	if req.FullName == "" {
+		return nil, errors.New("full name is required")
+	}
+
+	if req.Email == "" {
+		return nil, errors.New("email is required")
+	}
+
+	if req.Email != admin.Email {
+		existing, err := u.adminRepo.FindByEmail(ctx, req.Email)
+		if err == nil && existing != nil && existing.Id != admin.Id {
+			return nil, errors.New("email is already registered with another account")
+		}
+	}
+
+	if req.NewPassword != "" {
+		if len(req.NewPassword) < 6 {
+			return nil, errors.New("new password must be at least 6 characters")
+		}
+
+		if req.CurrentPassword == "" {
+			return nil, errors.New("current password is required to change password")
+		}
+
+		if !security.CheckPasswordHash(req.CurrentPassword, admin.PasswordHash) {
+			return nil, errors.New("current password is incorrect")
+		}
+
+		hashedPassword, err := security.HashPassword(req.NewPassword)
+		if err != nil {
+			return nil, err
+		}
+		admin.PasswordHash = hashedPassword
+	}
+
+	admin.FullName = req.FullName
+	admin.Email = req.Email
+	admin.UpdatedBy = updatedBy
+	admin.UpdatedDate = time.Now()
+
+	if err := u.adminRepo.Update(ctx, admin); err != nil {
+		return nil, err
+	}
+
+	return u.GetProfile(ctx, admin.Id)
+}
+
 func (u *authUseCase) CreateUser(ctx context.Context, req *domain.CreateSuperAdminRequest, createdBy string) error {
 	hashedPassword, err := security.HashPassword(req.Password)
 	if err != nil {

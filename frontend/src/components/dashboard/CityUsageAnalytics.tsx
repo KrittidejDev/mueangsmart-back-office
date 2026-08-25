@@ -16,88 +16,19 @@ import {
   Cell,
 } from "recharts";
 
+import { Overview } from "@/hooks/useAnalytics";
+
 interface MonthlyData {
   month: string;
   active: number;
   inactive: number;
 }
 
-interface YearAnalyticsData {
-  yearLabel: string;
-  activeCount: number;
-  inactiveCount: number;
-  activePercent: number;
-  inactivePercent: number;
-  monthly: MonthlyData[];
+interface CityUsageAnalyticsProps {
+  overview?: Overview | null;
 }
 
-const ANALYTICS_BY_YEAR: Record<string, YearAnalyticsData> = {
-  "2569": {
-    yearLabel: "ปี 2569",
-    activeCount: 128,
-    inactiveCount: 28,
-    activePercent: 82.05,
-    inactivePercent: 17.95,
-    monthly: [
-      { month: "ม.ค.", active: 10, inactive: -1 },
-      { month: "ก.พ.", active: 0, inactive: 0 },
-      { month: "มี.ค.", active: 20, inactive: -2 },
-      { month: "เม.ย.", active: 5, inactive: 0 },
-      { month: "พ.ค.", active: 15, inactive: 0 },
-      { month: "มิ.ย.", active: 2, inactive: 0 },
-      { month: "ก.ค.", active: 7, inactive: -1 },
-      { month: "ส.ค.", active: 19, inactive: 0 },
-      { month: "ก.ย.", active: 3, inactive: 0 },
-      { month: "ต.ค.", active: 3, inactive: 0 },
-      { month: "พ.ย.", active: 0, inactive: 0 },
-      { month: "ธ.ค.", active: 20, inactive: -5 },
-    ],
-  },
-  "2568": {
-    yearLabel: "ปี 2568",
-    activeCount: 110,
-    inactiveCount: 30,
-    activePercent: 78.57,
-    inactivePercent: 21.43,
-    monthly: [
-      { month: "ม.ค.", active: 8, inactive: 0 },
-      { month: "ก.พ.", active: 12, inactive: -1 },
-      { month: "มี.ค.", active: 15, inactive: 0 },
-      { month: "เม.ย.", active: 6, inactive: -3 },
-      { month: "พ.ค.", active: 10, inactive: 0 },
-      { month: "มิ.ย.", active: 14, inactive: -2 },
-      { month: "ก.ค.", active: 5, inactive: 0 },
-      { month: "ส.ค.", active: 11, inactive: -1 },
-      { month: "ก.ย.", active: 9, inactive: 0 },
-      { month: "ต.ค.", active: 7, inactive: 0 },
-      { month: "พ.ย.", active: 4, inactive: -2 },
-      { month: "ธ.ค.", active: 9, inactive: -1 },
-    ],
-  },
-  "2567": {
-    yearLabel: "ปี 2567",
-    activeCount: 95,
-    inactiveCount: 30,
-    activePercent: 76.0,
-    inactivePercent: 24.0,
-    monthly: [
-      { month: "ม.ค.", active: 5, inactive: -2 },
-      { month: "ก.พ.", active: 8, inactive: 0 },
-      { month: "มี.ค.", active: 10, inactive: -1 },
-      { month: "เม.ย.", active: 12, inactive: 0 },
-      { month: "พ.ค.", active: 7, inactive: -2 },
-      { month: "มิ.ย.", active: 9, inactive: 0 },
-      { month: "ก.ค.", active: 11, inactive: -1 },
-      { month: "ส.ค.", active: 6, inactive: 0 },
-      { month: "ก.ย.", active: 8, inactive: -3 },
-      { month: "ต.ค.", active: 10, inactive: 0 },
-      { month: "พ.ย.", active: 5, inactive: -1 },
-      { month: "ธ.ค.", active: 4, inactive: 0 },
-    ],
-  },
-};
-
-const renderActiveLabel = (props: any) => {
+const renderActiveLabel = (props: { x?: number; y?: number; value?: number }) => {
   const { x, y, value } = props;
   if (x === undefined || y === undefined || value === undefined) return <g />;
   return (
@@ -114,7 +45,7 @@ const renderActiveLabel = (props: any) => {
   );
 };
 
-const renderInactiveLabel = (props: any) => {
+const renderInactiveLabel = (props: { x?: number; y?: number; value?: number }) => {
   const { x, y, value } = props;
   if (x === undefined || y === undefined || value === undefined) return <g />;
   return (
@@ -132,10 +63,10 @@ const renderInactiveLabel = (props: any) => {
 };
 
 // Custom Tooltip to prevent duplicates and style items clearly
-const CustomChartTooltip = ({ active, payload, label }: any) => {
+const CustomChartTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ dataKey: string; value: number }>; label?: string }) => {
   if (active && payload && payload.length) {
-    const activeItem = payload.find((item: any) => item.dataKey === "active");
-    const inactiveItem = payload.find((item: any) => item.dataKey === "inactive");
+    const activeItem = payload.find((item) => item.dataKey === "active");
+    const inactiveItem = payload.find((item) => item.dataKey === "inactive");
 
     return (
       <div className="bg-white p-3 border border-slate-200 rounded-xl shadow-lg text-xs space-y-1.5 min-w-[140px]">
@@ -160,7 +91,7 @@ const CustomChartTooltip = ({ active, payload, label }: any) => {
 
 const subscribe = () => () => {};
 
-export function CityUsageAnalytics() {
+export function CityUsageAnalytics({ overview }: CityUsageAnalyticsProps) {
   const [selectedYear, setSelectedYear] = useState<string>("2569");
   const mounted = React.useSyncExternalStore(
     subscribe,
@@ -168,11 +99,43 @@ export function CityUsageAnalytics() {
     () => false
   );
 
-  const currentData = ANALYTICS_BY_YEAR[selectedYear] || ANALYTICS_BY_YEAR["2569"];
+  const beYear = parseInt(selectedYear, 10);
+  const ceYear = beYear - 543;
+
+  const monthlyChartData: MonthlyData[] = React.useMemo(() => {
+    const monthLabels = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+    const trends = overview?.monthly_trends;
+    if (trends && trends.length > 0) {
+      const yearTrends = trends.filter((t) => t.year === ceYear || t.year === beYear);
+      return monthLabels.map((name, idx) => {
+        const mNum = idx + 1;
+        const found = yearTrends.find((t) => t.month === mNum);
+        return {
+          month: name,
+          active: found ? Number(found.active_count) : 0,
+          inactive: found ? -Math.abs(Number(found.inactive_count)) : 0,
+        };
+      });
+    }
+
+    return monthLabels.map((name) => ({
+      month: name,
+      active: 0,
+      inactive: 0,
+    }));
+  }, [overview, ceYear, beYear]);
+
+  const activeCount = overview?.active_cities || 0;
+  const inactiveCount = overview?.inactive_cities !== undefined
+    ? overview.inactive_cities
+    : Math.max(0, (overview?.total_cities || 0) - activeCount);
+  const totalCount = activeCount + inactiveCount;
+  const activePercent = totalCount > 0 ? Number(((activeCount / totalCount) * 100).toFixed(2)) : 0;
+  const inactivePercent = totalCount > 0 ? Number(((inactiveCount / totalCount) * 100).toFixed(2)) : 0;
 
   const donutData = [
-    { name: "เปิดใช้งาน", value: currentData.activeCount, color: "#2563EB" },
-    { name: "ไม่ได้ใช้งาน", value: currentData.inactiveCount, color: "#EF4444" },
+    { name: "เปิดใช้งาน", value: activeCount, color: "#2563EB" },
+    { name: "ไม่ได้ใช้งาน", value: inactiveCount, color: "#EF4444" },
   ];
 
   if (!mounted) {
@@ -230,7 +193,7 @@ export function CityUsageAnalytics() {
         <div className="w-full h-[280px] sm:h-[300px] mt-2">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
-              data={currentData.monthly}
+              data={monthlyChartData}
               margin={{ top: 20, right: 15, left: -15, bottom: 5 }}
             >
               <defs>
@@ -334,7 +297,7 @@ export function CityUsageAnalytics() {
             {/* Center Donut Label */}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
               <span className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                {currentData.activePercent}%
+                {activePercent}%
               </span>
               <span className="text-xs font-semibold text-slate-500 mt-0.5">
                 เปิดใช้งาน
@@ -350,7 +313,7 @@ export function CityUsageAnalytics() {
             <div>
               <p className="text-xs text-slate-500 font-medium">เปิดใช้งาน</p>
               <p className="text-xs sm:text-sm font-bold text-slate-800">
-                {currentData.activeCount} เมือง ({currentData.activePercent}%)
+                {activeCount} เมือง ({activePercent}%)
               </p>
             </div>
           </div>
@@ -360,7 +323,7 @@ export function CityUsageAnalytics() {
             <div>
               <p className="text-xs text-slate-500 font-medium">ไม่ได้ใช้งาน</p>
               <p className="text-xs sm:text-sm font-bold text-slate-800">
-                {currentData.inactiveCount} เมือง ({currentData.inactivePercent}%)
+                {inactiveCount} เมือง ({inactivePercent}%)
               </p>
             </div>
           </div>

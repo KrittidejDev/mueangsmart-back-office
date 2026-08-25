@@ -18,15 +18,81 @@ func NewAnalyticsRepository(db *gorm.DB) domain.AnalyticsRepository {
 func (r *analyticsRepository) GetOverview(ctx context.Context) (*domain.OverviewAnalytics, error) {
 	var overview domain.OverviewAnalytics
 
-	r.db.WithContext(ctx).Table("\"Municipalities\"").Count(&overview.TotalCities)
-	r.db.WithContext(ctx).Table("\"Municipalities\"").Where("\"Status\" = ?", "Active").Count(&overview.ActiveCities)
-	r.db.WithContext(ctx).Table("\"ModuleElderlyAndDisabled\"").Count(&overview.TotalElderlyAndDisabled)
-	r.db.WithContext(ctx).Table("\"ModuleBedriddenPatient\"").Count(&overview.TotalBedridden)
+	r.db.WithContext(ctx).Table("\"Municipalities\"").
+		Count(&overview.TotalCities)
 
-	r.db.WithContext(ctx).Table("\"UserMunicipalities\"").Count(&overview.TotalUsers)
-	r.db.WithContext(ctx).Table("\"UserMunicipalities\"").Where("\"Status\" = ? OR \"Status\" = ?", "Approved", "ACTIVE").Count(&overview.ApprovedUsers)
-	r.db.WithContext(ctx).Table("\"UserMunicipalities\"").Where("\"Status\" = ? OR \"Status\" = ?", "Pending", "PENDING").Count(&overview.PendingUsers)
-	r.db.WithContext(ctx).Table("\"UserMunicipalities\"").Where("\"Status\" = ? OR \"Status\" = ?", "Rejected", "REJECTED").Count(&overview.RejectedUsers)
+	r.db.WithContext(ctx).Table("\"Municipalities\"").
+		Where("\"Status\" ILIKE ? OR \"Status\" ILIKE ?", "active%", "%ใช้งาน%").
+		Count(&overview.ActiveCities)
+
+	overview.InactiveCities = overview.TotalCities - overview.ActiveCities
+	if overview.InactiveCities < 0 {
+		overview.InactiveCities = 0
+	}
+
+	r.db.WithContext(ctx).Table("\"UserMunicipalities\"").
+		Count(&overview.TotalUsers)
+
+	r.db.WithContext(ctx).Table("\"Users\"").Count(&overview.RegisteredUsers)
+
+	r.db.WithContext(ctx).Table("\"AdminUsers\"").
+		Count(&overview.TotalAdmins)
+
+	r.db.WithContext(ctx).Table("\"ModuleElderlyAndDisabled\"").
+		Count(&overview.TotalElderlyAndDisabled)
+
+	r.db.WithContext(ctx).Table("\"ModuleBedriddenPatient\"").
+		Count(&overview.TotalBedridden)
+
+	r.db.WithContext(ctx).Table("\"UserMunicipalities\"").
+		Where("\"Status\" ILIKE ? OR \"Status\" ILIKE ?", "approved%", "active%").
+		Count(&overview.ApprovedUsers)
+
+	r.db.WithContext(ctx).Table("\"UserMunicipalities\"").
+		Where("\"Status\" ILIKE ?", "pending%").
+		Count(&overview.PendingUsers)
+
+	r.db.WithContext(ctx).Table("\"UserMunicipalities\"").
+		Where("\"Status\" ILIKE ?", "rejected%").
+		Count(&overview.RejectedUsers)
+
+	var rawTrends []struct {
+		Year          int   `gorm:"column:year"`
+		Month         int   `gorm:"column:month"`
+		ActiveCount   int64 `gorm:"column:active_count"`
+		InactiveCount int64 `gorm:"column:inactive_count"`
+	}
+
+	trendQuery := `
+		SELECT 
+			COALESCE(EXTRACT(YEAR FROM "CreatedDate")::int, 2026) AS year,
+			COALESCE(EXTRACT(MONTH FROM "CreatedDate")::int, 1) AS month,
+			COUNT(CASE WHEN "Status" ILIKE 'active%' OR "Status" ILIKE '%ใช้งาน%' THEN 1 END) AS active_count,
+			COUNT(CASE WHEN "Status" NOT ILIKE 'active%' AND "Status" NOT ILIKE '%ใช้งาน%' THEN 1 END) AS inactive_count
+		FROM "Municipalities"
+		WHERE "CreatedDate" IS NOT NULL
+		GROUP BY 1, 2
+		ORDER BY 1 ASC, 2 ASC
+	`
+	if err := r.db.WithContext(ctx).Raw(trendQuery).Scan(&rawTrends).Error; err == nil {
+		monthNames := []string{"", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."}
+		for _, rt := range rawTrends {
+			name := ""
+			if rt.Month >= 1 && rt.Month <= 12 {
+				name = monthNames[rt.Month]
+			}
+			overview.MonthlyTrends = append(overview.MonthlyTrends, domain.MonthlyTrendStat{
+				Year:          rt.Year,
+				Month:         rt.Month,
+				MonthName:     name,
+				ActiveCount:   rt.ActiveCount,
+				InactiveCount: rt.InactiveCount,
+			})
+		}
+	}
+	if overview.MonthlyTrends == nil {
+		overview.MonthlyTrends = make([]domain.MonthlyTrendStat, 0)
+	}
 
 	return &overview, nil
 }
@@ -123,6 +189,7 @@ func (r *analyticsRepository) GetModuleMetrics(ctx context.Context) ([]domain.Mo
 			FROM "ModuleRiverDeviceThresholds"
 			GROUP BY "MunicipalityId"
 		) r ON m."Id" = r."MunicipalityId"
+		GROUP BY m."Id", m."NameTh", c.total_c, c.resolved_c, c.pending_c, w.total_w, w.paid_w, r.sensors_cnt, r.alerts_cnt
 		ORDER BY m."NameTh" ASC
 	`
 

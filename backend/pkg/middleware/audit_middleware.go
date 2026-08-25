@@ -16,10 +16,10 @@ func AuditLogger(db *gorm.DB) fiber.Handler {
 		// Process request first
 		err := c.Next()
 
-		// Only log mutating actions (POST, PUT, PATCH, DELETE) or Auth Login
+		// Only log mutating actions (POST, PUT, PATCH, DELETE)
 		method := c.Method()
 		path := c.Path()
-		if method == "GET" && path != "/api/v1/auth/me" {
+		if method == "GET" || method == "OPTIONS" || method == "HEAD" {
 			return err
 		}
 
