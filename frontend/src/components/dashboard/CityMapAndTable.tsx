@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { MapPin, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Plus, Minus, RotateCcw } from "lucide-react";
+import { useCities } from "@/hooks/useCities";
 
 function SortIcon({
   field,
@@ -35,375 +36,8 @@ export interface CityLocationData {
   lng: number;
 }
 
-const CITY_MOCK_DATA: CityLocationData[] = [
-  // Page 1 (1-10)
-  {
-    id: "1",
-    name: "เทศบาลเมืองสกลนคร",
-    isActive: true,
-    modulesCount: 8,
-    riverSensors: 10,
-    senseSensors: 15,
-    activeUsers: 98765,
-    registeredUsers: 24457,
-    lat: 17.155,
-    lng: 104.148,
-  },
-  {
-    id: "2",
-    name: "เทศบาลนครนนทบุรี",
-    isActive: true,
-    modulesCount: 12,
-    riverSensors: 18,
-    senseSensors: 20,
-    activeUsers: 267071,
-    registeredUsers: 65321,
-    lat: 13.862,
-    lng: 100.513,
-  },
-  {
-    id: "3",
-    name: "เทศบาลเมืองปากเกร็ด",
-    isActive: true,
-    modulesCount: 10,
-    riverSensors: 14,
-    senseSensors: 18,
-    activeUsers: 136258,
-    registeredUsers: 33987,
-    lat: 13.913,
-    lng: 100.498,
-  },
-  {
-    id: "4",
-    name: "เทศบาลเมืองบางใหญ่",
-    isActive: true,
-    modulesCount: 6,
-    riverSensors: 8,
-    senseSensors: 12,
-    activeUsers: 71954,
-    registeredUsers: 17892,
-    lat: 13.876,
-    lng: 100.413,
-  },
-  {
-    id: "5",
-    name: "เทศบาลเมืองบางกรวย",
-    isActive: true,
-    modulesCount: 7,
-    riverSensors: 9,
-    senseSensors: 14,
-    activeUsers: 57884,
-    registeredUsers: 14765,
-    lat: 13.805,
-    lng: 100.473,
-  },
-  {
-    id: "6",
-    name: "เทศบาลเมืองนครปฐม",
-    isActive: true,
-    modulesCount: 9,
-    riverSensors: 12,
-    senseSensors: 17,
-    activeUsers: 73211,
-    registeredUsers: 18456,
-    lat: 13.819,
-    lng: 100.06,
-  },
-  {
-    id: "7",
-    name: "เทศบาลเมืองสมุทรสาคร",
-    isActive: true,
-    modulesCount: 11,
-    riverSensors: 16,
-    senseSensors: 19,
-    activeUsers: 64231,
-    registeredUsers: 15274,
-    lat: 13.547,
-    lng: 100.274,
-  },
-  {
-    id: "8",
-    name: "เทศบาลเมืองสุรินทร์แฮม",
-    isActive: false,
-    modulesCount: 5,
-    riverSensors: 7,
-    senseSensors: 10,
-    activeUsers: 29876,
-    registeredUsers: 7856,
-    lat: 14.882,
-    lng: 103.493,
-  },
-  {
-    id: "9",
-    name: "เทศบาลเมืองลำลูกกา",
-    isActive: false,
-    modulesCount: 10,
-    riverSensors: 13,
-    senseSensors: 16,
-    activeUsers: 115812,
-    registeredUsers: 27963,
-    lat: 13.932,
-    lng: 100.748,
-  },
-  {
-    id: "10",
-    name: "เทศบาลเมืองบางบัวทอง",
-    isActive: false,
-    modulesCount: 8,
-    riverSensors: 11,
-    senseSensors: 13,
-    activeUsers: 56112,
-    registeredUsers: 13245,
-    lat: 13.916,
-    lng: 100.423,
-  },
-
-  // Page 2 (11-20)
-  {
-    id: "11",
-    name: "เทศบาลนครเชียงใหม่",
-    isActive: true,
-    modulesCount: 14,
-    riverSensors: 20,
-    senseSensors: 25,
-    activeUsers: 127240,
-    registeredUsers: 35120,
-    lat: 18.788,
-    lng: 98.985,
-  },
-  {
-    id: "12",
-    name: "เทศบาลนครเชียงราย",
-    isActive: true,
-    modulesCount: 10,
-    riverSensors: 15,
-    senseSensors: 18,
-    activeUsers: 76500,
-    registeredUsers: 19840,
-    lat: 19.91,
-    lng: 99.84,
-  },
-  {
-    id: "13",
-    name: "เทศบาลเมืองพิษณุโลก",
-    isActive: true,
-    modulesCount: 9,
-    riverSensors: 12,
-    senseSensors: 16,
-    activeUsers: 89400,
-    registeredUsers: 22150,
-    lat: 16.821,
-    lng: 100.265,
-  },
-  {
-    id: "14",
-    name: "เทศบาลนครขอนแก่น",
-    isActive: true,
-    modulesCount: 13,
-    riverSensors: 17,
-    senseSensors: 22,
-    activeUsers: 113800,
-    registeredUsers: 31400,
-    lat: 16.441,
-    lng: 102.835,
-  },
-  {
-    id: "15",
-    name: "เทศบาลนครอุบลราชธานี",
-    isActive: true,
-    modulesCount: 11,
-    riverSensors: 16,
-    senseSensors: 19,
-    activeUsers: 106500,
-    registeredUsers: 28900,
-    lat: 15.228,
-    lng: 104.859,
-  },
-  {
-    id: "16",
-    name: "เทศบาลนครนครราชสีมา",
-    isActive: true,
-    modulesCount: 15,
-    riverSensors: 22,
-    senseSensors: 28,
-    activeUsers: 142100,
-    registeredUsers: 41200,
-    lat: 14.979,
-    lng: 102.097,
-  },
-  {
-    id: "17",
-    name: "เทศบาลนครหาดใหญ่",
-    isActive: true,
-    modulesCount: 12,
-    riverSensors: 14,
-    senseSensors: 21,
-    activeUsers: 156800,
-    registeredUsers: 45300,
-    lat: 7.008,
-    lng: 100.474,
-  },
-  {
-    id: "18",
-    name: "เทศบาลเมืองชลบุรี",
-    isActive: true,
-    modulesCount: 10,
-    riverSensors: 11,
-    senseSensors: 15,
-    activeUsers: 82300,
-    registeredUsers: 21700,
-    lat: 13.361,
-    lng: 100.984,
-  },
-  {
-    id: "19",
-    name: "เทศบาลเมืองหัวหิน",
-    isActive: false,
-    modulesCount: 6,
-    riverSensors: 8,
-    senseSensors: 11,
-    activeUsers: 63400,
-    registeredUsers: 14800,
-    lat: 12.568,
-    lng: 99.957,
-  },
-  {
-    id: "20",
-    name: "เทศบาลนครสุราษฎร์ธานี",
-    isActive: false,
-    modulesCount: 7,
-    riverSensors: 10,
-    senseSensors: 13,
-    activeUsers: 128500,
-    registeredUsers: 29400,
-    lat: 9.138,
-    lng: 99.333,
-  },
-
-  // Page 3 (21-30)
-  {
-    id: "21",
-    name: "เทศบาลนครอุดรธานี",
-    isActive: true,
-    modulesCount: 12,
-    riverSensors: 15,
-    senseSensors: 20,
-    activeUsers: 130500,
-    registeredUsers: 33600,
-    lat: 17.415,
-    lng: 102.787,
-  },
-  {
-    id: "22",
-    name: "เทศบาลเมืองลำปาง",
-    isActive: true,
-    modulesCount: 8,
-    riverSensors: 11,
-    senseSensors: 14,
-    activeUsers: 54200,
-    registeredUsers: 13900,
-    lat: 18.292,
-    lng: 99.492,
-  },
-  {
-    id: "23",
-    name: "เทศบาลเมืองระยอง",
-    isActive: true,
-    modulesCount: 11,
-    riverSensors: 13,
-    senseSensors: 18,
-    activeUsers: 67800,
-    registeredUsers: 18200,
-    lat: 12.681,
-    lng: 101.281,
-  },
-  {
-    id: "24",
-    name: "เทศบาลนครภูเก็ต",
-    isActive: true,
-    modulesCount: 14,
-    riverSensors: 18,
-    senseSensors: 24,
-    activeUsers: 79200,
-    registeredUsers: 26400,
-    lat: 7.88,
-    lng: 98.392,
-  },
-  {
-    id: "25",
-    name: "เทศบาลเมืองกาญจนบุรี",
-    isActive: true,
-    modulesCount: 7,
-    riverSensors: 12,
-    senseSensors: 13,
-    activeUsers: 48900,
-    registeredUsers: 11500,
-    lat: 14.022,
-    lng: 99.532,
-  },
-  {
-    id: "26",
-    name: "เทศบาลเมืองราชบุรี",
-    isActive: true,
-    modulesCount: 8,
-    riverSensors: 10,
-    senseSensors: 15,
-    activeUsers: 52400,
-    registeredUsers: 12800,
-    lat: 13.537,
-    lng: 99.816,
-  },
-  {
-    id: "27",
-    name: "เทศบาลเมืองฉะเชิงเทรา",
-    isActive: true,
-    modulesCount: 9,
-    riverSensors: 14,
-    senseSensors: 16,
-    activeUsers: 59100,
-    registeredUsers: 15600,
-    lat: 13.69,
-    lng: 101.077,
-  },
-  {
-    id: "28",
-    name: "เทศบาลเมืองสระบุรี",
-    isActive: true,
-    modulesCount: 8,
-    riverSensors: 9,
-    senseSensors: 13,
-    activeUsers: 61300,
-    registeredUsers: 16100,
-    lat: 14.528,
-    lng: 100.91,
-  },
-  {
-    id: "29",
-    name: "เทศบาลเมืองอยุธยา",
-    isActive: true,
-    modulesCount: 10,
-    riverSensors: 15,
-    senseSensors: 17,
-    activeUsers: 72600,
-    registeredUsers: 20300,
-    lat: 14.353,
-    lng: 100.568,
-  },
-  {
-    id: "30",
-    name: "เทศบาลนครยะลา",
-    isActive: true,
-    modulesCount: 9,
-    riverSensors: 11,
-    senseSensors: 14,
-    activeUsers: 63700,
-    registeredUsers: 17400,
-    lat: 6.541,
-    lng: 101.281,
-  },
-];
-
 export function CityMapAndTable() {
+  const { cities } = useCities();
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [hoveredCityId, setHoveredCityId] = useState<string | null>(null);
 
@@ -416,6 +50,24 @@ export function CityMapAndTable() {
   const [sortField, setSortField] = useState<CitySortField | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
+  const cityLocationData: CityLocationData[] = useMemo(() => {
+    return (cities || []).map((c) => {
+      const isActive = c.status?.toLowerCase().includes("active") || c.status?.includes("ใช้งาน");
+      return {
+        id: c.id,
+        name: c.name_th,
+        isActive: !!isActive,
+        modulesCount: c.active_modules_count || c.modules_count || 0,
+        riverSensors: typeof c.river_status === "number" ? c.river_status : (Number(c.river_status) || 0),
+        senseSensors: typeof c.sense_status === "number" ? c.sense_status : (Number(c.sense_status) || 0),
+        activeUsers: c.active_users_count || c.total_users_count || 0,
+        registeredUsers: c.registered_users_count || c.total_users_count || 0,
+        lat: c.latitude && c.latitude !== 0 ? c.latitude : 13.7563,
+        lng: c.longitude && c.longitude !== 0 ? c.longitude : 100.5018,
+      };
+    });
+  }, [cities]);
+
   const handleSort = (field: CitySortField) => {
     if (sortField === field) {
       setSortDirection((prev) => (prev === "desc" ? "asc" : "desc"));
@@ -426,8 +78,8 @@ export function CityMapAndTable() {
   };
 
   const sortedCities = useMemo(() => {
-    if (!sortField) return CITY_MOCK_DATA;
-    return [...CITY_MOCK_DATA].sort((a, b) => {
+    if (!sortField) return cityLocationData;
+    return [...cityLocationData].sort((a, b) => {
       const aVal = a[sortField];
       const bVal = b[sortField];
 
@@ -448,11 +100,11 @@ export function CityMapAndTable() {
 
       return sortDirection === "asc" ? comparison : -comparison;
     });
-  }, [sortField, sortDirection]);
+  }, [cityLocationData, sortField, sortDirection]);
 
   const itemsPerPage = 10;
   const totalCitiesCount = sortedCities.length;
-  const totalPages = Math.ceil(totalCitiesCount / itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(totalCitiesCount / itemsPerPage));
 
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentTableCities = sortedCities.slice(startIndex, startIndex + itemsPerPage);
@@ -468,7 +120,6 @@ export function CityMapAndTable() {
 
       if (!isMounted || !mapContainerRef.current) return;
 
-      // Center map on Thailand
       const map = L.map(mapContainerRef.current, {
         center: [13.2, 101.2],
         zoom: 6,
@@ -477,7 +128,6 @@ export function CityMapAndTable() {
         scrollWheelZoom: true,
       });
 
-      // CartoDB Voyager Tile Layer for clean, beautiful corporate look
       L.tileLayer(
         "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
         {
@@ -489,10 +139,38 @@ export function CityMapAndTable() {
       ).addTo(map);
 
       mapInstanceRef.current = map;
+    }
 
-      // Render Leaflet Markers for all 30 cities
-      CITY_MOCK_DATA.forEach((city) => {
-        const pinBgColor = city.isActive ? "#10b981" : "#ef4444"; // Green for Active, Red for Inactive
+    initLeafletMap();
+
+    return () => {
+      isMounted = false;
+      if (hoverTimerRef.current) {
+        clearTimeout(hoverTimerRef.current);
+      }
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, []);
+
+  // Sync Markers with Live cityLocationData
+  useEffect(() => {
+    if (!mapInstanceRef.current || cityLocationData.length === 0) return;
+    const map = mapInstanceRef.current;
+
+    Object.values(markersRef.current).forEach((marker: any) => {
+      if (marker && map) {
+        map.removeLayer(marker);
+      }
+    });
+    markersRef.current = {};
+
+    import("leaflet").then((leafletModule) => {
+      const L = leafletModule.default;
+      cityLocationData.forEach((city) => {
+        const pinBgColor = city.isActive ? "#10b981" : "#ef4444";
 
         const customHtml = `
           <div id="pin-${city.id}" class="relative transition-all duration-200 cursor-pointer flex items-center justify-center filter drop-shadow-md">
@@ -539,21 +217,8 @@ export function CityMapAndTable() {
 
         markersRef.current[city.id] = marker;
       });
-    }
-
-    initLeafletMap();
-
-    return () => {
-      isMounted = false;
-      if (hoverTimerRef.current) {
-        clearTimeout(hoverTimerRef.current);
-      }
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-    };
-  }, []);
+    });
+  }, [cityLocationData]);
 
   // Sync Table Hover & Center Map on Selected/Hovered City
   useEffect(() => {
@@ -647,7 +312,7 @@ export function CityMapAndTable() {
               <span className="text-slate-700 font-bold">เปิดใช้งาน</span>
             </div>
             <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200/80">
-              {CITY_MOCK_DATA.filter((c) => c.isActive).length} เมือง
+              {cityLocationData.filter((c) => c.isActive).length} เมือง
             </span>
           </div>
 
@@ -659,7 +324,7 @@ export function CityMapAndTable() {
               <span className="text-slate-700 font-bold">ไม่ได้ใช้งาน</span>
             </div>
             <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-500 border border-rose-200/80">
-              {CITY_MOCK_DATA.filter((c) => !c.isActive).length} เมือง
+              {cityLocationData.filter((c) => !c.isActive).length} เมือง
             </span>
           </div>
         </div>

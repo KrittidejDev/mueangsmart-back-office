@@ -17,8 +17,10 @@ import {
   ChevronDown,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Loader2
 } from "lucide-react";
+import { CreateModulePayload, UpdateModulePayload } from "@/types/module";
 
 function StatusBadge({ active }: { active: boolean }) {
   if (active) {
@@ -59,6 +61,7 @@ export default function ModulesPage() {
   const {
     modules,
     allModules,
+    loading,
     searchQuery,
     setSearchQuery,
     pageSize,
@@ -102,22 +105,33 @@ export default function ModulesPage() {
     setFormModalOpen(true);
   };
 
-  const handleSaveModule = (data: Omit<SystemModule, "id"> | Partial<SystemModule>) => {
+  const handleSaveModule = async (
+    data: CreateModulePayload | UpdateModulePayload
+  ): Promise<boolean> => {
     if (formModalMode === "create") {
-      createModule(data as Omit<SystemModule, "id">);
-      setSuccessModalConfig({
-        isOpen: true,
-        title: "เพิ่มโมดูลสำเร็จ!",
-        description: "ระบบได้ทำการบันทึกข้อมูลโมดูลใหม่เรียบร้อยแล้ว",
-      });
+      const success = await createModule(data as CreateModulePayload);
+      if (success) {
+        setSuccessModalConfig({
+          isOpen: true,
+          title: "เพิ่มโมดูลสำเร็จ!",
+          description: "ระบบได้ทำการบันทึกข้อมูลโมดูลใหม่เรียบร้อยแล้ว",
+        });
+        return true;
+      }
+      return false;
     } else if (selectedModule) {
-      updateModule(selectedModule.id, data);
-      setSuccessModalConfig({
-        isOpen: true,
-        title: "บันทึกข้อมูลโมดูลสำเร็จ!",
-        description: `ระบบได้ทำการปรับปรุงข้อมูลโมดูล ${data.name_th || selectedModule.name_th} เรียบร้อยแล้ว`,
-      });
+      const success = await updateModule(selectedModule.id, data as UpdateModulePayload);
+      if (success) {
+        setSuccessModalConfig({
+          isOpen: true,
+          title: "บันทึกข้อมูลโมดูลสำเร็จ!",
+          description: `ระบบได้ทำการปรับปรุงข้อมูลโมดูล ${data.name_th || selectedModule.name_th} เรียบร้อยแล้ว`,
+        });
+        return true;
+      }
+      return false;
     }
+    return false;
   };
 
   const startItem = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1;
@@ -271,7 +285,16 @@ export default function ModulesPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {modules.length === 0 ? (
+                    {loading ? (
+                      <tr>
+                        <td colSpan={10} className="py-16 text-center text-slate-400 text-sm">
+                          <div className="flex flex-col items-center justify-center gap-2">
+                            <Loader2 className="w-6 h-6 animate-spin text-brand-primary" />
+                            <span className="text-xs font-semibold text-slate-500">กำลังโหลดข้อมูลโมดูล...</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : modules.length === 0 ? (
                       <tr>
                         <td colSpan={10} className="py-12 text-center text-slate-400 text-sm">
                           ไม่พบข้อมูลโมดูลที่ค้นหา

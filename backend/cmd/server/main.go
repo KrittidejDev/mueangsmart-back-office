@@ -60,6 +60,10 @@ func main() {
 		cityUseCase := usecase.NewCityUseCase(cityRepo, moduleRepo)
 		cityHandler := handler.NewCityHandler(cityUseCase)
 
+		moduleMgmtRepo := repository.NewModuleManagementRepository(db)
+		moduleMgmtUseCase := usecase.NewModuleManagementUseCase(moduleMgmtRepo)
+		moduleMgmtHandler := handler.NewModuleManagementHandler(moduleMgmtUseCase)
+
 		analyticsRepo := repository.NewAnalyticsRepository(db)
 		analyticsUseCase := usecase.NewAnalyticsUseCase(analyticsRepo)
 		analyticsHandler := handler.NewAnalyticsHandler(analyticsUseCase)
@@ -88,7 +92,15 @@ func main() {
 		citiesGroup.Put("/:id", middleware.RequirePermission(roleRepo, "City", "Write"), cityHandler.UpdateCity)
 		citiesGroup.Patch("/:id/status", middleware.RequirePermission(roleRepo, "City", "Write"), cityHandler.UpdateCityStatus)
 		citiesGroup.Get("/:id/modules", cityHandler.GetCityModules)
+		citiesGroup.Get("/:id/statistics", cityHandler.GetCityStatistics)
 		citiesGroup.Patch("/:id/modules/:moduleId", middleware.RequirePermission(roleRepo, "Module", "Toggle"), cityHandler.ToggleCityModule)
+
+		modulesGroup := api.Group("/modules", middleware.AuthGuard(cfg.JWTSecret))
+		modulesGroup.Get("/", cityHandler.GetAllMasterModules)
+		modulesGroup.Get("/management", moduleMgmtHandler.GetAllModules)
+		modulesGroup.Get("/management/:id", moduleMgmtHandler.GetModuleByID)
+		modulesGroup.Post("/management", middleware.RequirePermission(roleRepo, "Module", "Manage"), moduleMgmtHandler.CreateModule)
+		modulesGroup.Put("/management/:id", middleware.RequirePermission(roleRepo, "Module", "Manage"), moduleMgmtHandler.UpdateModule)
 
 		analyticsGroup := api.Group("/analytics", middleware.AuthGuard(cfg.JWTSecret))
 		analyticsGroup.Get("/overview", analyticsHandler.GetOverview)
@@ -98,6 +110,15 @@ func main() {
 
 		auditGroup := api.Group("/audit-logs", middleware.AuthGuard(cfg.JWTSecret), middleware.RequirePermission(roleRepo, "AuditLog", "Read"))
 		auditGroup.Get("/", auditHandler.GetAuditLogs)
+
+		assetHandler := handler.NewAssetHandler(cfg)
+		app.Get("/assets/:id", assetHandler.GetAsset)
+		api.Get("/assets/:id", assetHandler.GetAsset)
+
+		assetsGroup := api.Group("/assets", middleware.AuthGuard(cfg.JWTSecret))
+		assetsGroup.Post("/upload", assetHandler.UploadAsset)
+		assetsGroup.Post("/delete", assetHandler.DeleteAsset)
+		assetsGroup.Delete("/:id", assetHandler.DeleteAsset)
 	}
 
 	log.Printf("Starting MueangSmart Back Office Fiber v3 backend on port %s (%s)", cfg.AppPort, cfg.AppEnv)

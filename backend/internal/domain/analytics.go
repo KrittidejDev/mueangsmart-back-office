@@ -2,16 +2,28 @@ package domain
 
 import "context"
 
+type MonthlyTrendStat struct {
+	Year          int    `json:"year"`
+	Month         int    `json:"month"`
+	MonthName     string `json:"month_name"`
+	ActiveCount   int64  `json:"active_count"`
+	InactiveCount int64  `json:"inactive_count"`
+}
+
 // Analytics DTOs
 type OverviewAnalytics struct {
-	TotalCities             int64 `json:"total_cities"`
-	ActiveCities            int64 `json:"active_cities"`
-	TotalElderlyAndDisabled int64 `json:"total_elderly_and_disabled"`
-	TotalBedridden          int64 `json:"total_bedridden"`
-	TotalUsers              int64 `json:"total_users"`
-	ApprovedUsers           int64 `json:"approved_users"`
-	PendingUsers            int64 `json:"pending_users"`
-	RejectedUsers           int64 `json:"rejected_users"`
+	TotalCities             int64              `json:"total_cities"`
+	ActiveCities            int64              `json:"active_cities"`
+	InactiveCities          int64              `json:"inactive_cities"`
+	TotalUsers              int64              `json:"total_users"`
+	RegisteredUsers         int64              `json:"registered_users"`
+	TotalAdmins             int64              `json:"total_admins"`
+	TotalElderlyAndDisabled int64              `json:"total_elderly_and_disabled"`
+	TotalBedridden          int64              `json:"total_bedridden"`
+	ApprovedUsers           int64              `json:"approved_users"`
+	PendingUsers            int64              `json:"pending_users"`
+	RejectedUsers           int64              `json:"rejected_users"`
+	MonthlyTrends           []MonthlyTrendStat `json:"monthly_trends"`
 }
 
 type VulnerableGroupStat struct {

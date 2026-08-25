@@ -9,7 +9,10 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { CityFormModal } from "@/components/cities/CityFormModal";
 import { SuccessModal } from "@/components/ui/SuccessModal";
-import { useCities, City } from "@/hooks/useCities";
+import { resolveImageUrl } from "@/lib/image";
+import { useCities, City, ModuleStatus, CityStatistics } from "@/hooks/useCities";
+import { fetchSenseDeviceCount } from "@/services/gatewayService";
+import { api } from "@/lib/api";
 import {
   ArrowLeft,
   Calendar,
@@ -55,18 +58,17 @@ function MetricRow({ label, value, unit, variant = "default" }: MetricRowProps) 
 }
 
 function CityHeaderLogo({ logoUrl, name }: { logoUrl?: string; name: string }) {
-  const isFahfon = name?.includes("ฟ้าฝน");
-  const targetLogo = isFahfon ? "/images/logo_fahfon.jpeg" : logoUrl;
+  const cleanUrl =
+    logoUrl?.startsWith("blob:") || logoUrl?.startsWith("data:")
+      ? undefined
+      : logoUrl;
+  const targetLogo = resolveImageUrl(cleanUrl);
+
   const [imgError, setImgError] = useState(false);
 
-  const isValidUrl =
-    targetLogo &&
-    (targetLogo.startsWith("http://") ||
-      targetLogo.startsWith("https://") ||
-      targetLogo.startsWith("/") ||
-      targetLogo.startsWith("data:image/"));
+  const isValidUrl = Boolean(targetLogo);
 
-  if (!targetLogo || (!isFahfon && (imgError || !isValidUrl))) {
+  if (!targetLogo || imgError || !isValidUrl) {
     return (
       <div className="w-16 h-16 rounded-2xl bg-brand-light border border-brand-primary/20 text-brand-primary flex items-center justify-center font-bold text-2xl shadow-2xs flex-shrink-0">
         <Building2 className="w-8 h-8" />
@@ -83,7 +85,7 @@ function CityHeaderLogo({ logoUrl, name }: { logoUrl?: string; name: string }) {
         height={64}
         unoptimized
         onError={() => {
-          if (!isFahfon) setImgError(true);
+          setImgError(true);
         }}
         className="w-full h-full object-contain rounded-xl"
       />
@@ -97,21 +99,49 @@ export default function CityDetailPage({ params }: { params: Promise<{ id: strin
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [city, setCity] = useState<City | null>(null);
+  const [modules, setModules] = useState<ModuleStatus[]>([]);
+  const [stats, setStats] = useState<CityStatistics | null>(null);
+  const [senseCount, setSenseCount] = useState<number | null>(null);
+  const [pageLoading, setPageLoading] = useState(true);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [successModalOpen, setSuccessModalOpen] = useState(false);
-  const [dateRange, setDateRange] = useState("1 ม.ค. 2569 - 31 ธ.ค. 2569");
+  const [dateRange] = useState("1 ม.ค. 2569 - 31 ธ.ค. 2569");
 
-  const { loading, fetchCityByID, updateCity } = useCities();
+  const { fetchCityByID, fetchCityStatistics, updateCity } = useCities();
 
   useEffect(() => {
-    async function loadCityData() {
-      const data = await fetchCityByID(cityId);
-      if (data) {
-        setCity(data);
+    let isMounted = true;
+
+    async function loadAllCityData() {
+      try {
+        setPageLoading(true);
+        const [cityData, statsData, modulesRes, realSenseCount] = await Promise.all([
+          fetchCityByID(cityId),
+          fetchCityStatistics(cityId),
+          api.get(`/cities/${cityId}/modules`).catch(() => ({ data: [] })),
+          fetchSenseDeviceCount(cityId),
+        ]);
+
+        if (isMounted) {
+          if (cityData) setCity(cityData);
+          if (statsData) setStats(statsData);
+          if (realSenseCount !== undefined && realSenseCount !== null) {
+            setSenseCount(realSenseCount);
+          }
+          if (modulesRes?.data && Array.isArray(modulesRes.data)) {
+            setModules(modulesRes.data);
+          }
+        }
+      } finally {
+        if (isMounted) setPageLoading(false);
       }
     }
-    loadCityData();
-  }, [cityId, fetchCityByID]);
+
+    loadAllCityData();
+    return () => {
+      isMounted = false;
+    };
+  }, [cityId, fetchCityByID, fetchCityStatistics]);
 
   const handleSaveEdit = async (updatedData: Partial<City>): Promise<boolean> => {
     if (!city) return false;
@@ -127,7 +157,7 @@ export default function CityDetailPage({ params }: { params: Promise<{ id: strin
 
   const handleExport = () => {
     const filename = `${city?.name_th || "city"}_report_${dateRange.replace(/\s+/g, "_")}.csv`;
-    const dummyContent = `City,${city?.name_th}\nDate,${dateRange}\nUsers,4540\nActive,865\nAdmins,28\n`;
+    const dummyContent = `City,${city?.name_th}\nDate,${dateRange}\nUsers,${stats?.registered_users || 0}\nActive,${stats?.active_users || 0}\nAdmins,${stats?.admin_users || 0}\n`;
     const blob = new Blob([dummyContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -138,15 +168,40 @@ export default function CityDetailPage({ params }: { params: Promise<{ id: strin
     document.body.removeChild(link);
   };
 
-  const nameTh = city?.name_th || "เทศบาลตำบลพลับพลานารายณ์";
+  const nameTh = city?.name_th || "";
   const nameEn = city?.name_en?.trim() ? city.name_en : null;
-  const rawAddressTh = city?.address_th || "9 Subdistrict ตำบล คลองนารายณ์ อำเภอเมืองจันทบุรี จันทบุรี 22000";
-  const addressTh = rawAddressTh.startsWith("ที่อยู่:") ? rawAddressTh : `ที่อยู่: ${rawAddressTh}`;
+  const rawAddressTh = city?.address_th || "";
+  const addressTh = rawAddressTh ? (rawAddressTh.startsWith("ที่อยู่:") ? rawAddressTh : `ที่อยู่: ${rawAddressTh}`) : "";
   const rawAddressEn = city?.address_en?.trim() ? city.address_en : null;
   const addressEn = rawAddressEn ? (rawAddressEn.startsWith("Address:") ? rawAddressEn : `Address: ${rawAddressEn}`) : null;
-  const phone = city?.phone || "024567890";
-  const lat = city?.latitude ?? 12.12356;
-  const lng = city?.longitude ?? 15.32154;
+  const phone = city?.phone || "-";
+  const lat = city?.latitude ?? 0;
+  const lng = city?.longitude ?? 0;
+  const isActive = city?.status === "Active" || city?.status === "ใช้งาน";
+
+  const isModuleActive = (keywords: string[]): boolean => {
+    if (!modules || modules.length === 0) return true;
+    const found = modules.find((m) =>
+      keywords.some(
+        (k) =>
+          m.name_th?.toLowerCase().includes(k.toLowerCase()) ||
+          m.code?.toLowerCase().includes(k.toLowerCase())
+      )
+    );
+    return found ? found.is_active : true;
+  };
+
+  const renderStatusBadge = (active: boolean) => (
+    <span
+      className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
+        active
+          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+          : "bg-rose-50 text-rose-600 border border-rose-200"
+      }`}
+    >
+      {active ? "ใช้งาน" : "ปิดใช้งาน"}
+    </span>
+  );
 
   return (
     <ProtectedRoute>
@@ -186,7 +241,7 @@ export default function CityDetailPage({ params }: { params: Promise<{ id: strin
               </div>
             </div>
 
-            {loading && !city ? (
+            {pageLoading && !city ? (
               <LoadingSpinner label="กำลังดึงรายละเอียดสถิติเมือง..." />
             ) : (
               <>
@@ -231,9 +286,15 @@ export default function CityDetailPage({ params }: { params: Promise<{ id: strin
                     </div>
 
                     <div className="flex items-center gap-3 self-start lg:self-center">
-                      <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                        เปิดใช้งาน
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold ${
+                          isActive
+                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            : "bg-rose-50 text-rose-700 border border-rose-200"
+                        }`}
+                      >
+                        <span className={`w-2 h-2 rounded-full ${isActive ? "bg-emerald-500" : "bg-rose-500"}`} />
+                        {isActive ? "เปิดใช้งาน" : "ไม่ใช้งาน"}
                       </span>
 
                       <button
@@ -252,7 +313,9 @@ export default function CityDetailPage({ params }: { params: Promise<{ id: strin
                     <div>
                       <span className="text-xs font-semibold text-slate-500 block">ผู้ลงทะเบียน (User)</span>
                       <div className="flex items-baseline gap-1.5 mt-1">
-                        <span className="text-2xl sm:text-3xl font-bold font-mono text-slate-900">4,540</span>
+                        <span className="text-2xl sm:text-3xl font-bold font-mono text-slate-900">
+                          {(stats?.registered_users ?? city?.registered_users_count ?? city?.total_users_count ?? 0).toLocaleString()}
+                        </span>
                         <span className="text-xs text-slate-500 font-medium">คน</span>
                       </div>
                     </div>
@@ -265,8 +328,10 @@ export default function CityDetailPage({ params }: { params: Promise<{ id: strin
                     <div>
                       <span className="text-xs font-semibold text-slate-500 block">ผู้ใช้งาน (User Active)</span>
                       <div className="flex items-baseline gap-1.5 mt-1">
-                        <span className="text-2xl sm:text-3xl font-bold font-mono text-slate-900">865</span>
-                        <span className="text-xs text-slate-500 font-medium">คน (82.05%)</span>
+                        <span className="text-2xl sm:text-3xl font-bold font-mono text-slate-900">
+                          {(stats?.active_users ?? city?.active_users_count ?? 0).toLocaleString()}
+                        </span>
+                        <span className="text-xs text-slate-500 font-medium">คน</span>
                       </div>
                     </div>
                     <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center">
@@ -278,7 +343,9 @@ export default function CityDetailPage({ params }: { params: Promise<{ id: strin
                     <div>
                       <span className="text-xs font-semibold text-slate-500 block">ผู้ดูแลระบบ (Admin)</span>
                       <div className="flex items-baseline gap-1.5 mt-1">
-                        <span className="text-2xl sm:text-3xl font-bold font-mono text-slate-900">28</span>
+                        <span className="text-2xl sm:text-3xl font-bold font-mono text-slate-900">
+                          {(stats?.admin_users ?? city?.admins_count ?? 0).toLocaleString()}
+                        </span>
                         <span className="text-xs text-slate-500 font-medium">คน</span>
                       </div>
                     </div>
@@ -295,111 +362,93 @@ export default function CityDetailPage({ params }: { params: Promise<{ id: strin
                     <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-start space-y-3">
                       <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
                         <h3 className="text-sm font-bold text-slate-900">ผู้สูงอายุและผู้พิการ</h3>
-                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          ใช้งาน
-                        </span>
+                        {renderStatusBadge(isModuleActive(["elderly", "ผู้สูงอายุ", "พิการ"]))}
                       </div>
                       <div className="pt-1">
-                        <MetricRow label="รายชื่อทั้งหมด" value={125} unit="คน" />
+                        <MetricRow label="รายชื่อทั้งหมด" value={stats?.elderly_and_disabled_count ?? 0} unit="คน" />
                       </div>
                     </div>
 
                     <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-start space-y-3">
                       <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
                         <h3 className="text-sm font-bold text-slate-900">ผู้ป่วยติดเตียง</h3>
-                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          ใช้งาน
-                        </span>
+                        {renderStatusBadge(isModuleActive(["bedridden", "ติดเตียง"]))}
                       </div>
                       <div className="pt-1">
-                        <MetricRow label="รายชื่อทั้งหมด" value={55} unit="คน" />
+                        <MetricRow label="รายชื่อทั้งหมด" value={stats?.bedridden_count ?? 0} unit="คน" />
                       </div>
                     </div>
 
                     <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-start space-y-3">
                       <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
                         <h3 className="text-sm font-bold text-slate-900">ศูนย์ร้องทุกข์ร้องเรียน</h3>
-                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          ใช้งาน
-                        </span>
+                        {renderStatusBadge(isModuleActive(["complaint", "ร้องทุกข์", "ร้องเรียน"]))}
                       </div>
                       <div className="pt-1">
-                        <MetricRow label="เรื่องร้องเรียนทั่วไปทั้งหมด" value={8} unit="เรื่อง" />
+                        <MetricRow label="เรื่องร้องเรียนทั่วไปทั้งหมด" value={stats?.general_complaints_count ?? 0} unit="เรื่อง" />
                       </div>
                     </div>
 
                     <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-start space-y-3">
                       <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
                         <h3 className="text-sm font-bold text-slate-900">ร้องทุกข์ร้องเรียน</h3>
-                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          ใช้งาน
-                        </span>
+                        {renderStatusBadge(isModuleActive(["complaint", "ร้องทุกข์", "ร้องเรียน"]))}
                       </div>
                       <div className="pt-1">
-                        <MetricRow label="เรื่องร้องเรียนทุกกองทั้งหมด" value={205} unit="เรื่อง" />
-                        <MetricRow label="ดำเนินการเสร็จสิ้น" value={200} unit="เรื่อง" />
+                        <MetricRow label="เรื่องร้องเรียนทุกกองทั้งหมด" value={stats?.total_complaints_count ?? 0} unit="เรื่อง" />
+                        <MetricRow label="ดำเนินการเสร็จสิ้น" value={stats?.resolved_complaints_count ?? 0} unit="เรื่อง" />
                       </div>
                     </div>
 
                     <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-start space-y-3">
                       <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
                         <h3 className="text-sm font-bold text-slate-900">ภาษี</h3>
-                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          ใช้งาน
-                        </span>
+                        {renderStatusBadge(isModuleActive(["tax", "ภาษี"]))}
                       </div>
                       <div className="pt-1">
-                        <MetricRow label="ภาษีที่ดินและสิ่งปลูกสร้าง" value={15} unit="รายการ" />
-                        <MetricRow label="ภาษีป้าย" value={9} unit="รายการ" />
+                        <MetricRow label="ภาษีที่ดินและสิ่งปลูกสร้าง" value={stats?.tax_land_building_count ?? 0} unit="รายการ" />
+                        <MetricRow label="ภาษีป้าย" value={stats?.tax_signboard_count ?? 0} unit="รายการ" />
                       </div>
                     </div>
 
                     <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-start space-y-3">
                       <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
                         <h3 className="text-sm font-bold text-slate-900">สัตว์เลี้ยง</h3>
-                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          ใช้งาน
-                        </span>
+                        {renderStatusBadge(isModuleActive(["pet", "สัตว์เลี้ยง"]))}
                       </div>
                       <div className="pt-1">
-                        <MetricRow label="สุนัข" value={46} unit="ตัว" />
-                        <MetricRow label="แมว" value={61} unit="ตัว" />
+                        <MetricRow label="สุนัข" value={stats?.pet_dogs_count ?? 0} unit="ตัว" />
+                        <MetricRow label="แมว" value={stats?.pet_cats_count ?? 0} unit="ตัว" />
                       </div>
                     </div>
 
                     <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-start space-y-3">
                       <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
                         <h3 className="text-sm font-bold text-slate-900">ยืนยันตัวตน</h3>
-                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          ใช้งาน
-                        </span>
+                        {renderStatusBadge(isModuleActive(["verify", "ยืนยันตัวตน"]))}
                       </div>
                       <div className="pt-1">
-                        <MetricRow label="รายชื่อทั้งหมด" value="4,532" unit="คน" />
+                        <MetricRow label="รายชื่อทั้งหมด" value={stats?.verified_users_count ?? 0} unit="คน" />
                       </div>
                     </div>
 
                     <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-start space-y-3">
                       <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
                         <h3 className="text-sm font-bold text-slate-900">ประชาสัมพันธ์</h3>
-                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          ใช้งาน
-                        </span>
+                        {renderStatusBadge(isModuleActive(["pr", "publicrelation", "ประชาสัมพันธ์"]))}
                       </div>
                       <div className="pt-1">
-                        <MetricRow label="ข่าวประชาสัมพันธ์ทั้งหมด" value={22} unit="รายการ" />
+                        <MetricRow label="ข่าวประชาสัมพันธ์ทั้งหมด" value={stats?.public_relations_count ?? 0} unit="รายการ" />
                       </div>
                     </div>
 
                     <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-start space-y-3">
                       <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
                         <h3 className="text-sm font-bold text-slate-900">การแจ้งเตือน</h3>
-                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          ใช้งาน
-                        </span>
+                        {renderStatusBadge(isModuleActive(["notification", "แจ้งเตือน"]))}
                       </div>
                       <div className="pt-1">
-                        <MetricRow label="รวมทุกโมดูลทั้งหมด" value={765} unit="ครั้ง" />
+                        <MetricRow label="รวมทุกโมดูลทั้งหมด" value={stats?.notifications_count ?? 0} unit="ครั้ง" />
                       </div>
                     </div>
 
@@ -408,65 +457,57 @@ export default function CityDetailPage({ params }: { params: Promise<{ id: strin
                         <h3 className="text-sm font-bold text-slate-900">ค่าธรรมเนียมขยะ</h3>
                         <div className="flex items-center gap-1.5">
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-brand-light text-brand-primary border border-brand-primary/20">
-                            ระบบใหม่
+                            {stats?.waste_system_mode || "ระบบใหม่"}
                           </span>
-                          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            ใช้งาน
-                          </span>
+                          {renderStatusBadge(isModuleActive(["waste", "ขยะ"]))}
                         </div>
                       </div>
                       <div className="pt-1">
-                        <MetricRow label="รายชื่อทั้งหมด" value="2,765" unit="รายชื่อ" />
-                        <MetricRow label="จำนวนบิลทั้งหมด" value="4,321" unit="รายการ" />
-                        <MetricRow label="รอชำระทั้งหมด" value={300} unit="รายการ" />
-                        <MetricRow label="ชำระแล้วทั้งหมด" value="4,021" unit="รายการ" />
+                        <MetricRow label="รายชื่อทั้งหมด" value={stats?.waste_members_count ?? 0} unit="รายชื่อ" />
+                        <MetricRow label="จำนวนบิลทั้งหมด" value={stats?.waste_bills_count ?? 0} unit="รายการ" />
+                        <MetricRow label="รอชำระทั้งหมด" value={stats?.waste_pending_bills_count ?? 0} unit="รายการ" />
+                        <MetricRow label="ชำระแล้วทั้งหมด" value={stats?.waste_paid_bills_count ?? 0} unit="รายการ" />
                       </div>
                     </div>
 
                     <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-start space-y-3">
                       <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
                         <h3 className="text-sm font-bold text-slate-900">กล้องวงจรปิด CCTV</h3>
-                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-600 border border-rose-200">
-                          ปิดใช้งาน
-                        </span>
+                        {renderStatusBadge(isModuleActive(["cctv", "กล้อง"]))}
                       </div>
                       <div className="pt-1">
-                        <MetricRow label="จำนวนกล้อง CCTV" value={0} unit="เครื่อง" />
-                        <MetricRow label="การเข้ารับชม" value={0} unit="ครั้ง" />
+                        <MetricRow label="จำนวนกล้อง CCTV" value={stats?.cctv_cameras_count ?? 0} unit="เครื่อง" />
+                        <MetricRow label="การเข้ารับชม" value={stats?.cctv_views_count ?? 0} unit="ครั้ง" />
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-slate-200 space-y-4">
+                <div className="space-y-4">
                   <h2 className="text-lg font-bold text-slate-900 tracking-tight">โมดูลเพิ่มเติม</h2>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-start space-y-3">
                       <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
                         <h3 className="text-sm font-bold text-slate-900">ระบบตรวจวัดระดับน้ำ (River)</h3>
-                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          ใช้งาน
-                        </span>
+                        {renderStatusBadge(isModuleActive(["river", "น้ำ"]))}
                       </div>
                       <div className="pt-1">
-                        <MetricRow label="สถานีตรวจวัดทั้งหมด" value={28} unit="สถานี" />
-                        <MetricRow label="ออนไลน์" value={25} unit="สถานี" variant="success" />
-                        <MetricRow label="ออฟไลน์" value={3} unit="สถานี" variant="danger" />
+                        <MetricRow label="สถานีตรวจวัดทั้งหมด" value={stats?.river_stations_count ?? city?.river_status ?? 0} unit="สถานี" />
+                        <MetricRow label="ออนไลน์" value={stats?.river_online_count ?? city?.river_status ?? 0} unit="สถานี" variant="success" />
+                        <MetricRow label="ออฟไลน์" value={stats?.river_offline_count ?? 0} unit="สถานี" />
                       </div>
                     </div>
 
                     <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-start space-y-3">
                       <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
-                        <h3 className="text-sm font-bold text-slate-900">ระบบตรวจวัดสภาพอากาศ (Sence)</h3>
-                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          ใช้งาน
-                        </span>
+                        <h3 className="text-sm font-bold text-slate-900">ระบบตรวจวัดสภาพอากาศ (Sense)</h3>
+                        {renderStatusBadge(isModuleActive(["sense", "fahfon", "ฟ้าฝน", "อากาศ"]))}
                       </div>
                       <div className="pt-1">
-                        <MetricRow label="สถานีตรวจวัดทั้งหมด" value={50} unit="สถานี" />
-                        <MetricRow label="ออนไลน์" value={49} unit="สถานี" variant="success" />
-                        <MetricRow label="ออฟไลน์" value={1} unit="สถานี" variant="danger" />
+                        <MetricRow label="สถานีตรวจวัดทั้งหมด" value={senseCount ?? stats?.sense_stations_count ?? city?.sense_status ?? 0} unit="สถานี" />
+                        <MetricRow label="ออนไลน์" value={senseCount ?? stats?.sense_online_count ?? city?.sense_status ?? 0} unit="สถานี" variant="success" />
+                        <MetricRow label="ออฟไลน์" value={stats?.sense_offline_count ?? 0} unit="สถานี" />
                       </div>
                     </div>
                   </div>
@@ -475,22 +516,28 @@ export default function CityDetailPage({ params }: { params: Promise<{ id: strin
             )}
           </main>
         </div>
-
-        <CityFormModal
-          isOpen={editModalOpen}
-          onClose={() => setEditModalOpen(false)}
-          mode="edit"
-          cityData={city}
-          onSave={handleSaveEdit}
-        />
-
-        <SuccessModal
-          isOpen={successModalOpen}
-          onClose={() => setSuccessModalOpen(false)}
-          title="บันทึกข้อมูลเมืองสำเร็จ"
-          description={`ระบบได้ทำการปรับปรุงข้อมูล ${city?.name_th || "เทศบาล"} เรียบร้อยแล้ว`}
-        />
       </div>
+
+      <CityFormModal
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        mode="edit"
+        cityData={city}
+        onSave={handleSaveEdit}
+      />
+
+      <SuccessModal
+        isOpen={successModalOpen}
+        onClose={() => setSuccessModalOpen(false)}
+        title="บันทึกการเปลี่ยนแปลงสำเร็จ!"
+        description={
+          <span>
+            อัปเดตข้อมูลรายละเอียดเมือง<br />
+            <strong className="text-slate-800 font-bold">&ldquo;{city?.name_th}&rdquo;</strong><br />
+            เรียบร้อยแล้ว
+          </span>
+        }
+      />
     </ProtectedRoute>
   );
 }

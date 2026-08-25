@@ -156,6 +156,17 @@ func (h *CityHandler) GetCityModules(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(modules)
 }
 
+func (h *CityHandler) GetAllMasterModules(c fiber.Ctx) error {
+	modules, err := h.cityUseCase.GetAllMasterModules(c.Context())
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(modules)
+}
+
 func (h *CityHandler) ToggleCityModule(c fiber.Ctx) error {
 	idParam := c.Params("id")
 	cityID, err := uuid.Parse(idParam)
@@ -196,4 +207,23 @@ func (h *CityHandler) ToggleCityModule(c fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "city module status toggled successfully",
 	})
+}
+
+func (h *CityHandler) GetCityStatistics(c fiber.Ctx) error {
+	idParam := c.Params("id")
+	cityID, err := uuid.Parse(idParam)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "invalid city id format",
+		})
+	}
+
+	stats, err := h.cityUseCase.GetCityStatistics(c.Context(), cityID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(stats)
 }

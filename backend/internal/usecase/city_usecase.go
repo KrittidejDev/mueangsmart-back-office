@@ -32,6 +32,8 @@ func (u *cityUseCase) GetAllCities(ctx context.Context) ([]domain.CityResponse, 
 		activeModules, _ := u.moduleRepo.CountActiveByMunicipalityID(ctx, m.Id)
 		usersCount, _ := u.moduleRepo.CountUsersByMunicipalityID(ctx, m.Id)
 		adminsCount, _ := u.moduleRepo.CountAdminsByMunicipalityID(ctx, m.Id)
+		riverCount, _ := u.moduleRepo.CountRiverByMunicipalityID(ctx, m.Id)
+		senseCount, _ := u.moduleRepo.CountSenseByMunicipalityID(ctx, m.Id)
 
 		res = append(res, domain.CityResponse{
 			Id:                 m.Id,
@@ -44,15 +46,19 @@ func (u *cityUseCase) GetAllCities(ctx context.Context) ([]domain.CityResponse, 
 			Longitude:          m.Longitude,
 			LogoUrl:            m.LogoUrl,
 			Status:             m.Status,
+			ModulesCount:       activeModules,
 			ActiveModulesCount: activeModules,
 			TotalUsersCount:    usersCount,
 			AdminsCount:        adminsCount,
+			RiverStatus:        riverCount,
+			SenseStatus:        senseCount,
 			CreatedDate:        m.CreatedDate,
 		})
 	}
 
 	return res, nil
 }
+
 
 func (u *cityUseCase) GetCityByID(ctx context.Context, id uuid.UUID) (*domain.CityResponse, error) {
 	m, err := u.cityRepo.FindByID(ctx, id)
@@ -63,8 +69,10 @@ func (u *cityUseCase) GetCityByID(ctx context.Context, id uuid.UUID) (*domain.Ci
 	activeModules, _ := u.moduleRepo.CountActiveByMunicipalityID(ctx, m.Id)
 	usersCount, _ := u.moduleRepo.CountUsersByMunicipalityID(ctx, m.Id)
 	adminsCount, _ := u.moduleRepo.CountAdminsByMunicipalityID(ctx, m.Id)
+	riverCount, _ := u.moduleRepo.CountRiverByMunicipalityID(ctx, m.Id)
+	senseCount, _ := u.moduleRepo.CountSenseByMunicipalityID(ctx, m.Id)
 
-	return &domain.CityResponse{
+	resp := &domain.CityResponse{
 		Id:                 m.Id,
 		NameTh:             m.NameTh,
 		NameEn:             m.NameEn,
@@ -75,22 +83,36 @@ func (u *cityUseCase) GetCityByID(ctx context.Context, id uuid.UUID) (*domain.Ci
 		Longitude:          m.Longitude,
 		LogoUrl:            m.LogoUrl,
 		Status:             m.Status,
+		ModulesCount:       activeModules,
 		ActiveModulesCount: activeModules,
 		TotalUsersCount:    usersCount,
 		AdminsCount:        adminsCount,
+		RiverStatus:        riverCount,
+		SenseStatus:        senseCount,
 		VulnerableCount:    usersCount / 3,
-		BankName:          "ธนาคารกรุงไทย (KTB)",
-		BankAccountNumber: "123-4-56789-0",
-		BankAccountName:   "บัญชีเงินอุดหนุนเทศบาล " + m.NameTh,
-		BankBranch:        "สาขาประจำจังหวัด",
-		BankType:          "ออมทรัพย์",
-		AdminName:         "นายสมศักดิ์",
-		AdminLastName:     "ผู้ดูแลระบบเทศบาล",
-		AdminEmail:        "admin@" + m.NameEn + ".go.th",
-		AdminPhone:        m.Phone,
 		CreatedDate:        m.CreatedDate,
-	}, nil
+	}
+
+	// Enrich with Bank Detail from DB (best-effort, no error propagation)
+	if bank, err := u.cityRepo.FindBankDetailByMunicipalityID(ctx, m.Id); err == nil {
+		resp.BankName = bank.BankName
+		resp.BankAccountNumber = bank.BankAccountNumber
+		resp.BankAccountName = bank.BankAccountName
+		resp.BankBranch = bank.BankBranch
+		resp.BankType = bank.BankType
+	}
+
+	// Enrich with Admin User from DB (best-effort, no error propagation)
+	if admin, err := u.cityRepo.FindAdminUserByMunicipalityID(ctx, m.Id); err == nil {
+		resp.AdminName = admin.Name
+		resp.AdminLastName = admin.LastName
+		resp.AdminEmail = admin.Email
+		resp.AdminPhone = admin.Phone
+	}
+
+	return resp, nil
 }
+
 
 func (u *cityUseCase) CreateCity(ctx context.Context, req domain.CreateCityRequest, creator string) (*domain.CityResponse, error) {
 	cityID := uuid.New()
@@ -99,9 +121,11 @@ func (u *cityUseCase) CreateCity(ctx context.Context, req domain.CreateCityReque
 		NameTh:      req.NameTh,
 		NameEn:      req.NameEn,
 		AddressTh:   req.AddressTh,
+		AddressEn:   req.AddressEn,
 		Phone:       req.Phone,
 		Latitude:    req.Latitude,
 		Longitude:   req.Longitude,
+		LogoUrl:     req.LogoUrl,
 		Status:      "Active",
 		CreatedBy:   creator,
 		CreatedDate: time.Now(),
@@ -123,17 +147,33 @@ func (u *cityUseCase) UpdateCity(ctx context.Context, id uuid.UUID, req domain.U
 	m.NameTh = req.NameTh
 	m.NameEn = req.NameEn
 	m.AddressTh = req.AddressTh
+	m.AddressEn = req.AddressEn
 	m.Phone = req.Phone
 	m.Latitude = req.Latitude
 	m.Longitude = req.Longitude
+	if req.LogoUrl != nil {
+		m.LogoUrl = req.LogoUrl
+	}
 	if req.Status != "" {
 		m.Status = req.Status
 	}
 	m.UpdatedBy = updatedBy
 	m.UpdatedDate = time.Now()
 
-	return u.cityRepo.Update(ctx, m)
+	if err := u.cityRepo.Update(ctx, m); err != nil {
+		return err
+	}
+
+	// Upsert bank detail (best-effort — does not fail the whole update)
+	_ = u.cityRepo.UpsertBankDetail(ctx, id, req, updatedBy)
+
+	// Update admin user basic info (best-effort)
+	_ = u.cityRepo.UpdateAdminUserBasicInfo(ctx, id, req, updatedBy)
+
+	return nil
 }
+
+
 
 func (u *cityUseCase) UpdateCityStatus(ctx context.Context, id uuid.UUID, req domain.UpdateCityStatusRequest, updatedBy string) error {
 	return u.cityRepo.UpdateStatus(ctx, id, req.Status, updatedBy)
@@ -143,6 +183,14 @@ func (u *cityUseCase) GetCityModules(ctx context.Context, cityID uuid.UUID) ([]d
 	return u.moduleRepo.FindByMunicipalityID(ctx, cityID)
 }
 
+func (u *cityUseCase) GetAllMasterModules(ctx context.Context) ([]domain.CityModuleStatus, error) {
+	return u.moduleRepo.FindAllMasterModules(ctx)
+}
+
 func (u *cityUseCase) ToggleCityModule(ctx context.Context, cityID, moduleID uuid.UUID, req domain.ToggleModuleRequest, updatedBy string) error {
 	return u.moduleRepo.UpsertModuleStatus(ctx, cityID, moduleID, req.IsActive, updatedBy)
+}
+
+func (u *cityUseCase) GetCityStatistics(ctx context.Context, cityID uuid.UUID) (*domain.CityModuleDetailStatistics, error) {
+	return u.moduleRepo.GetCityStatistics(ctx, cityID)
 }

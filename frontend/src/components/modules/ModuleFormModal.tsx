@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { X } from "lucide-react";
-import { SystemModule } from "@/types/module";
+import { X, Loader2, AlertCircle } from "lucide-react";
+import { SystemModule, CreateModulePayload, UpdateModulePayload } from "@/types/module";
 
 interface ModuleFormModalProps {
   isOpen: boolean;
@@ -10,7 +10,7 @@ interface ModuleFormModalProps {
   mode: "create" | "edit";
   moduleData?: SystemModule | null;
   nextSortOrder?: number;
-  onSave: (data: Omit<SystemModule, "id"> | Partial<SystemModule>) => void;
+  onSave: (data: CreateModulePayload | UpdateModulePayload) => Promise<boolean>;
 }
 
 function ModuleFormModalContent({
@@ -50,20 +50,46 @@ function ModuleFormModalContent({
     isEdit ? moduleData.show_dashboard ?? false : true
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSaving, setIsSaving] = useState(false);
+  const [formError, setFormError] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({
-      sort_order: sortOrder,
-      name_th: nameTh,
-      name_en: nameEn,
-      dashboard_name_th: dashboardNameTh,
-      dashboard_name_en: dashboardNameEn,
-      verify_identity: verifyIdentity,
-      department: department,
-      admin_only: adminOnly,
-      show_dashboard: showDashboard,
-    });
-    onClose();
+    if (!nameTh.trim()) {
+      setFormError("กรุณากรอกชื่อโมดูล (ภาษาไทย)");
+      return;
+    }
+    if (!nameEn.trim()) {
+      setFormError("กรุณากรอกชื่อโมดูล (ภาษาอังกฤษ)");
+      return;
+    }
+
+    setFormError("");
+    setIsSaving(true);
+
+    try {
+      const success = await onSave({
+        sort_order: sortOrder,
+        name_th: nameTh.trim(),
+        name_en: nameEn.trim(),
+        dashboard_name_th: dashboardNameTh.trim(),
+        dashboard_name_en: dashboardNameEn.trim(),
+        verify_identity: verifyIdentity,
+        department: department,
+        admin_only: adminOnly,
+        show_dashboard: showDashboard,
+      });
+
+      if (success) {
+        onClose();
+      } else {
+        setFormError("เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง");
+      }
+    } catch {
+      setFormError("เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -86,6 +112,13 @@ function ModuleFormModalContent({
           </button>
         </div>
 
+        {formError && (
+          <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span>{formError}</span>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5">
@@ -103,7 +136,7 @@ function ModuleFormModalContent({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                ชื่อโมดูล (ภาษาไทย)
+                ชื่อโมดูล (ภาษาไทย) <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -116,7 +149,7 @@ function ModuleFormModalContent({
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                ชื่อโมดูล (ภาษาอังกฤษ)
+                ชื่อโมดูล (ภาษาอังกฤษ) <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -124,6 +157,7 @@ function ModuleFormModalContent({
                 onChange={(e) => setNameEn(e.target.value)}
                 placeholder="เช่น Elderly and Disabled"
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-brand-primary"
+                required
               />
             </div>
           </div>
@@ -229,15 +263,26 @@ function ModuleFormModalContent({
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-semibold transition-all cursor-pointer"
+              disabled={isSaving}
+              className="px-5 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-semibold transition-all cursor-pointer disabled:opacity-50"
             >
               ยกเลิก
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-brand-primary hover:bg-brand-hover active:bg-brand-hover text-white text-sm font-semibold shadow-md shadow-brand-primary/20 transition-all cursor-pointer"
+              disabled={isSaving}
+              className="px-5 py-2 rounded-xl bg-brand-primary hover:bg-brand-hover active:bg-brand-hover text-white text-sm font-semibold shadow-md shadow-brand-primary/20 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
-              {mode === "create" ? "บันทึก" : "บันทึกการแก้ไข"}
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>กำลังบันทึก...</span>
+                </>
+              ) : mode === "create" ? (
+                "บันทึก"
+              ) : (
+                "บันทึกการแก้ไข"
+              )}
             </button>
           </div>
         </form>
