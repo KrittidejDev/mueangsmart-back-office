@@ -34,8 +34,35 @@ export function useModules() {
   }, []);
 
   useEffect(() => {
-    fetchModules();
-  }, [fetchModules]);
+    let cancelled = false;
+
+    async function load() {
+      try {
+        setError(null);
+        const res = await api.get<SystemModule[]>("/modules/management");
+        if (cancelled) return;
+        if (res.data && Array.isArray(res.data)) {
+          cachedModules = res.data;
+          setAllModules(res.data);
+        }
+      } catch (err: unknown) {
+        if (!cancelled) {
+          const msg = err instanceof Error ? err.message : "Failed to load modules";
+          setError(msg);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    if (!cachedModules) {
+      load();
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSort = useCallback((field: keyof SystemModule) => {
     if (sortField === field) {

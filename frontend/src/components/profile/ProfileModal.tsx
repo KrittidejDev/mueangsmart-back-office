@@ -1,20 +1,20 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { useAuthStore } from "@/store/useAuthStore";
 import { api } from "@/lib/api";
-import { 
-  User, 
-  Mail, 
-  Lock, 
-  ShieldCheck, 
-  KeyRound, 
-  AlertCircle, 
-  CheckCircle2, 
-  Eye, 
-  EyeOff, 
-  Loader2 
+import {
+  User,
+  Mail,
+  Lock,
+  ShieldCheck,
+  KeyRound,
+  AlertCircle,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  Loader2,
 } from "lucide-react";
 
 interface ProfileModalProps {
@@ -25,9 +25,11 @@ interface ProfileModalProps {
 export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const { user, updateUser } = useAuthStore();
 
+  const prevIsOpen = useRef(false);
+
   const [activeTab, setActiveTab] = useState<"general" | "password">("general");
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
+  const [fullName, setFullName] = useState(user?.fullName ?? "");
+  const [email, setEmail] = useState(user?.email ?? "");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -40,31 +42,29 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Initialize or fetch current full profile info when opening modal
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || prevIsOpen.current === isOpen) return;
+    prevIsOpen.current = isOpen;
 
+    setActiveTab("general");
     setError(null);
     setSuccessMsg(null);
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
-    setActiveTab("general");
+    setFullName(user?.fullName ?? "");
+    setEmail(user?.email ?? "");
 
-    if (user) {
-      setFullName(user.fullName || "");
-      setEmail(user.email || "");
-    }
-
-    api.get("/auth/me")
-      .then((res) => {
+    api
+      .get("/auth/me")
+      .then((res: { data?: { full_name?: string; email?: string } }) => {
         if (res.data) {
-          setFullName(res.data.full_name || "");
-          setEmail(res.data.email || "");
+          setFullName(res.data.full_name ?? "");
+          setEmail(res.data.email ?? "");
         }
       })
       .catch(() => {});
-  }, [isOpen]);
+  }, [isOpen, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

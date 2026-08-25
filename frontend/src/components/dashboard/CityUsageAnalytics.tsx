@@ -104,8 +104,9 @@ export function CityUsageAnalytics({ overview }: CityUsageAnalyticsProps) {
 
   const monthlyChartData: MonthlyData[] = React.useMemo(() => {
     const monthLabels = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
-    if (overview?.monthly_trends && overview.monthly_trends.length > 0) {
-      const yearTrends = overview.monthly_trends.filter((t) => t.year === ceYear || t.year === beYear);
+    const trends = overview?.monthly_trends;
+    if (trends && trends.length > 0) {
+      const yearTrends = trends.filter((t) => t.year === ceYear || t.year === beYear);
       return monthLabels.map((name, idx) => {
         const mNum = idx + 1;
         const found = yearTrends.find((t) => t.month === mNum);
@@ -122,7 +123,7 @@ export function CityUsageAnalytics({ overview }: CityUsageAnalyticsProps) {
       active: 0,
       inactive: 0,
     }));
-  }, [overview?.monthly_trends, ceYear, beYear]);
+  }, [overview, ceYear, beYear]);
 
   const activeCount = overview?.active_cities || 0;
   const inactiveCount = overview?.inactive_cities !== undefined

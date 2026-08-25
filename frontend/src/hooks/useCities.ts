@@ -106,45 +106,41 @@ export function useCities() {
       setError(null);
       const res = await api.get("/cities");
       if (res.data && Array.isArray(res.data)) {
-        const cityList: City[] = res.data
-          .map((c: City) => {
-            const isFahfon = c.name_th?.includes("ฟ้าฝน");
-            const totalUsers = c.total_users_count || 0;
-            return {
-              ...c,
-              logo_url: c.logo_url || "",
-              modules_count: c.modules_count || c.active_modules_count || 0,
-              active_modules_count: c.active_modules_count || 0,
-              admins_count: c.admins_count || 0,
-              river_status: c.river_status ?? 0,
-              sense_status: c.sense_status ?? 0,
-              active_users_count: totalUsers,
-              registered_users_count: totalUsers,
-              total_users_count: totalUsers,
-            };
-          });
+        const cityList: City[] = res.data.map((c: City) => {
+          const totalUsers = c.total_users_count ?? 0;
+          return {
+            ...c,
+            logo_url: c.logo_url ?? "",
+            modules_count: c.modules_count ?? c.active_modules_count ?? 0,
+            active_modules_count: c.active_modules_count ?? 0,
+            admins_count: c.admins_count ?? 0,
+            river_status: c.river_status ?? 0,
+            sense_status: c.sense_status ?? 0,
+            active_users_count: totalUsers,
+            registered_users_count: totalUsers,
+            total_users_count: totalUsers,
+          };
+        });
 
         const list = sortCitiesWithFahfonFirst(cityList);
         cachedCities = list;
         setCities(list);
 
-        // Fetch real SENSE device counts from Micro-API asynchronously in the background
-        fetchSenseDeviceCountsForCities(list).then((senseCounts) => {
-          if (senseCounts && senseCounts.size > 0) {
-            setCities((prev) => {
-              const updated = prev.map((c) => {
-                const count = senseCounts.get(c.id);
-                if (count === undefined) return c;
-                return {
-                  ...c,
-                  sense_status: count,
-                };
+        fetchSenseDeviceCountsForCities(list)
+          .then((senseCounts) => {
+            if (senseCounts && senseCounts.size > 0) {
+              setCities((prev) => {
+                const updated = prev.map((c) => {
+                  const count = senseCounts.get(c.id);
+                  if (count === undefined) return c;
+                  return { ...c, sense_status: count };
+                });
+                cachedCities = updated;
+                return updated;
               });
-              cachedCities = updated;
-              return updated;
-            });
-          }
-        }).catch(() => {});
+            }
+          })
+          .catch(() => {});
       } else {
         setCities([]);
       }
@@ -157,8 +153,71 @@ export function useCities() {
   }, []);
 
   useEffect(() => {
-    fetchCities();
-  }, [fetchCities]);
+    let cancelled = false;
+
+    async function load() {
+      try {
+        setError(null);
+        const res = await api.get("/cities");
+        if (cancelled) return;
+
+        if (res.data && Array.isArray(res.data)) {
+          const cityList: City[] = res.data.map((c: City) => {
+            const totalUsers = c.total_users_count ?? 0;
+            return {
+              ...c,
+              logo_url: c.logo_url ?? "",
+              modules_count: c.modules_count ?? c.active_modules_count ?? 0,
+              active_modules_count: c.active_modules_count ?? 0,
+              admins_count: c.admins_count ?? 0,
+              river_status: c.river_status ?? 0,
+              sense_status: c.sense_status ?? 0,
+              active_users_count: totalUsers,
+              registered_users_count: totalUsers,
+              total_users_count: totalUsers,
+            };
+          });
+
+          const list = sortCitiesWithFahfonFirst(cityList);
+          if (!cancelled) {
+            cachedCities = list;
+            setCities(list);
+          }
+
+          fetchSenseDeviceCountsForCities(list)
+            .then((senseCounts) => {
+              if (cancelled || !senseCounts || senseCounts.size === 0) return;
+              setCities((prev) => {
+                const updated = prev.map((c) => {
+                  const count = senseCounts.get(c.id);
+                  return count === undefined ? c : { ...c, sense_status: count };
+                });
+                cachedCities = updated;
+                return updated;
+              });
+            })
+            .catch(() => {});
+        } else {
+          if (!cancelled) setCities([]);
+        }
+      } catch (err: unknown) {
+        if (!cancelled) {
+          const errMsg = err instanceof Error ? err.message : "Failed to load cities";
+          setError(errMsg);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    if (!cachedCities) {
+      load();
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const fetchCityByID = useCallback(async (id: string) => {
     try {
