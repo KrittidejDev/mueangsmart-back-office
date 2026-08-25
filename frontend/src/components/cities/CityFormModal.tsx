@@ -171,28 +171,6 @@ function CityFormModalContent({
   const [formError, setFormError] = useState("");
 
   useEffect(() => {
-    if (cityData && isEdit) {
-      if (cityData.logo_url) {
-        setLogoPreview(cityData.logo_url);
-      }
-      if (cityData.name_th) setNameTh(cityData.name_th);
-      if (cityData.name_en) setNameEn(cityData.name_en);
-      if (cityData.address_th) setAddressTh(cityData.address_th);
-      if (cityData.address_en) setAddressEn(cityData.address_en);
-      if (cityData.phone) setPhone(cityData.phone);
-      if (cityData.bank_name) setBankName(cityData.bank_name);
-      if (cityData.bank_account_number) setBankAccountNumber(cityData.bank_account_number);
-      if (cityData.bank_account_name) setBankAccountName(cityData.bank_account_name);
-      if (cityData.bank_branch) setBankBranch(cityData.bank_branch);
-      if (cityData.bank_type) setBankType(cityData.bank_type);
-      if (cityData.admin_name) setAdminName(cityData.admin_name);
-      if (cityData.admin_last_name) setAdminLastName(cityData.admin_last_name);
-      if (cityData.admin_email) setAdminEmail(cityData.admin_email);
-      if (cityData.admin_phone) setAdminPhone(cityData.admin_phone);
-    }
-  }, [cityData, isEdit]);
-
-  useEffect(() => {
     async function loadBackendModules() {
       setLoadingModules(true);
       try {
