@@ -11,6 +11,8 @@ type Config struct {
 	AppEnv      string
 	DatabaseDSN string
 	JWTSecret   string
+	MicroApiUrl string
+	MainApiUrl  string
 }
 
 func LoadConfig() (*Config, error) {
@@ -36,10 +38,15 @@ func LoadConfig() (*Config, error) {
 		jwtSecret = "super-secret-mueangsmart-backoffice-key"
 	}
 
+	microApiUrl := os.Getenv("MICRO_API_URL")
+	mainApiUrl := os.Getenv("MAIN_API_URL")
+
 	return &Config{
 		AppPort:     port,
 		AppEnv:      appEnv,
 		DatabaseDSN: dsn,
 		JWTSecret:   jwtSecret,
+		MicroApiUrl: microApiUrl,
+		MainApiUrl:  mainApiUrl,
 	}, nil
 }

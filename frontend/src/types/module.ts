@@ -9,4 +9,8 @@ export interface SystemModule {
   department: boolean;
   admin_only: boolean;
   show_dashboard: boolean;
+  key?: string;
 }
+
+export type CreateModulePayload = Omit<SystemModule, "id">;
+export type UpdateModulePayload = Omit<SystemModule, "id">;

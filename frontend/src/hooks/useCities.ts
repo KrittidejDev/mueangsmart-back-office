@@ -1,18 +1,22 @@
 import { useState, useEffect, useCallback } from "react";
 import { api } from "@/lib/api";
+import { fetchSenseDeviceCountsForCities } from "@/services/gatewayService";
 
 export interface City {
   id: string;
   name_th: string;
   name_en?: string;
   logo_url?: string;
-  stamp_url?: string;
   address_th: string;
   address_en?: string;
   phone?: string;
   latitude?: number;
   longitude?: number;
   status: string;
+  created_by?: string;
+  created_date?: string;
+  updated_by?: string;
+  updated_date?: string;
   modules_count?: number;
   active_modules_count?: number;
   river_status?: string | number;
@@ -31,7 +35,10 @@ export interface City {
   admin_last_name?: string;
   admin_email?: string;
   admin_phone?: string;
+  admin_password?: string;
+  selected_module_ids?: string[];
 }
+
 
 export interface ModuleStatus {
   module_id: string;
@@ -42,443 +49,145 @@ export interface ModuleStatus {
   is_active: boolean;
 }
 
-const INITIAL_MOCK_CITIES: City[] = [
-  {
-    id: "1",
-    name_th: "เมืองฟ้าฝน",
-    name_en: "Fah Fon Town Municipality",
-    logo_url: "/images/logo_fahfon.jpeg",
-    stamp_url: "/images/stamp_fahfon.png",
-    address_th: "9 Subdistrict ตำบล คลองนารายณ์ อำเภอเมืองจันทบุรี จันทบุรี 22000",
-    address_en: "9 Moo 14, Khlong Narai ,Mueang Chanthaburi District ,Chanthaburi ,22000 ,Thailand",
-    status: "ใช้งาน",
-    modules_count: 13,
-    active_modules_count: 12,
-    river_status: 28,
-    sense_status: 50,
-    active_users_count: 865,
-    registered_users_count: 4540,
-    total_users_count: 4540,
-    phone: "024567890",
-    latitude: 12.12356,
-    longitude: 15.32154,
-  },
-  {
-    id: "2",
-    name_th: "เทศบาลตำบลพลับพลานารายณ์",
-    name_en: "Phlapphla Narai Subdistrict Municipality",
-    address_th: "9 Subdistrict ตำบล คลองนารายณ์ อำเภอเมืองจันทบุรี จันทบุรี 22000",
-    address_en: "9 Moo 14, Khlong Narai ,Mueang Chanthaburi District ,Chanthaburi ,22000 ,Thailand",
-    status: "ใช้งาน",
-    modules_count: 8,
-    active_modules_count: 8,
-    river_status: 15,
-    sense_status: 18,
-    active_users_count: 320,
-    registered_users_count: 480,
-    total_users_count: 480,
-    phone: "039-311-890",
-    latitude: 12.612,
-    longitude: 102.104,
-  },
-  {
-    id: "3",
-    name_th: "องค์การบริหารส่วนตำบลศาลาแดง",
-    name_en: "Sala Daeng Subdistrict SAO",
-    address_th: "59 หมู่ที่ 12 ถนน หนองจอก-บ้านสร้าง ต.ศาลาแดง อ.บางน้ำเปรี้ยว จ.ฉะเชิงเทรา 24000",
-    status: "ใช้งาน",
-    modules_count: 8,
-    active_modules_count: 8,
-    river_status: 12,
-    sense_status: 14,
-    active_users_count: 150,
-    registered_users_count: 225,
-    total_users_count: 225,
-    phone: "038-511-234",
-    latitude: 13.882,
-    longitude: 100.912,
-  },
-  {
-    id: "4",
-    name_th: "องค์การบริหารส่วนตำบลเสม็ดใต้",
-    name_en: "Samed Tai Subdistrict SAO",
-    address_th: "เลขที่ 111 หมู่ที่ 4 ต.เสม็ดใต้ อ.บางคล้า จ.ฉะเชิงเทรา 24110",
-    status: "ใช้งาน",
-    modules_count: 8,
-    active_modules_count: 8,
-    river_status: 6,
-    sense_status: 8,
-    active_users_count: 82,
-    registered_users_count: 125,
-    total_users_count: 125,
-    phone: "038-541-111",
-    latitude: 13.721,
-    longitude: 101.213,
-  },
-  {
-    id: "5",
-    name_th: "เทศบาลเมืองบางแม่นาง",
-    name_en: "Bang Mae Nang Town Municipality",
-    address_th: "เลขที่ 24/5 หมู่ 4 ต.บางแม่นาง อ.บางใหญ่ จ.นนทบุรี 11140",
-    status: "ใช้งาน",
-    modules_count: 8,
-    active_modules_count: 8,
-    river_status: 8,
-    sense_status: 12,
-    active_users_count: 152,
-    registered_users_count: 230,
-    total_users_count: 230,
-    phone: "02-927-5511",
-    latitude: 13.885,
-    longitude: 100.388,
-  },
-  {
-    id: "6",
-    name_th: "เทศบาลเมืองบ้านฉาง",
-    name_en: "Ban Chang Town Municipality",
-    address_th: "ต.บ้านฉาง อ.บ้านฉาง จ.ระยอง 21130",
-    status: "ใช้งาน",
-    modules_count: 8,
-    active_modules_count: 8,
-    river_status: 11,
-    sense_status: 16,
-    active_users_count: 103,
-    registered_users_count: 160,
-    total_users_count: 160,
-    phone: "038-601-111",
-    latitude: 12.724,
-    longitude: 101.071,
-  },
-  {
-    id: "7",
-    name_th: "เทศบาลเมืองสามพราน",
-    name_en: "Sam Phran Town Municipality",
-    address_th: "98/19 หมู่ที่ 7 ถนนสามพราน 2 ต.สามพราน อ.สามพราน จ.นครปฐม 73110",
-    status: "ใช้งาน",
-    modules_count: 8,
-    active_modules_count: 8,
-    river_status: 9,
-    sense_status: 14,
-    active_users_count: 260,
-    registered_users_count: 388,
-    total_users_count: 388,
-    phone: "034-311-234",
-    latitude: 13.725,
-    longitude: 100.215,
-  },
-  {
-    id: "8",
-    name_th: "เมืองฟ้าฝน",
-    name_en: "Fah Fon Town Municipality",
-    logo_url: "/images/logo_fahfon.jpeg",
-    stamp_url: "/images/stamp_fahfon.png",
-    address_th: "ที่อยู่ 9 หมู่ 14 ต.คลองนารายณ์ อ.เมืองจันทบุรี จ.จันทบุรี 22000",
-    status: "ใช้งาน",
-    modules_count: 8,
-    active_modules_count: 8,
-    river_status: 14,
-    sense_status: 17,
-    active_users_count: 290,
-    registered_users_count: 435,
-    total_users_count: 435,
-    phone: "039-441-234",
-    latitude: 12.595,
-    longitude: 102.121,
-  },
-  {
-    id: "9",
-    name_th: "เทศบาลตำบลศาลายา",
-    name_en: "Salaya Subdistrict Municipality",
-    address_th: "อ.ศาลายา จ.นครปฐม 73170",
-    status: "ไม่ใช้งาน",
-    modules_count: 8,
-    active_modules_count: 8,
-    river_status: 4,
-    sense_status: "-",
-    active_users_count: 31,
-    registered_users_count: 48,
-    total_users_count: 48,
-    phone: "034-297-123",
-    latitude: 13.805,
-    longitude: 100.325,
-  },
-  {
-    id: "10",
-    name_th: "เทศบาลนครนนทบุรี",
-    name_en: "Nonthaburi City Municipality",
-    address_th: "ต.สวนใหญ่ อ.เมืองนนทบุรี จ.นนทบุรี 11000",
-    status: "ใช้งาน",
-    modules_count: 8,
-    active_modules_count: 8,
-    river_status: 18,
-    sense_status: 20,
-    active_users_count: 450,
-    registered_users_count: 680,
-    total_users_count: 680,
-    phone: "02-589-0500",
-    latitude: 13.862,
-    longitude: 100.513,
-  },
-  {
-    id: "11",
-    name_th: "เทศบาลนครเชียงใหม่",
-    name_en: "Chiang Mai City Municipality",
-    address_th: "ต.ช้างคลาน อ.เมืองเชียงใหม่ จ.เชียงใหม่ 50100",
-    status: "ใช้งาน",
-    modules_count: 8,
-    active_modules_count: 8,
-    river_status: 20,
-    sense_status: 19,
-    active_users_count: 520,
-    registered_users_count: 780,
-    total_users_count: 780,
-    phone: "053-259-000",
-    latitude: 18.788,
-    longitude: 98.985,
-  },
-  {
-    id: "12",
-    name_th: "เทศบาลนครขอนแก่น",
-    name_en: "Khon Kaen City Municipality",
-    address_th: "ต.ในเมือง อ.เมืองขอนแก่น จ.ขอนแก่น 40000",
-    status: "ใช้งาน",
-    modules_count: 8,
-    active_modules_count: 8,
-    river_status: 16,
-    sense_status: 18,
-    active_users_count: 410,
-    registered_users_count: 615,
-    total_users_count: 615,
-    phone: "043-221-202",
-    latitude: 16.441,
-    longitude: 102.835,
-  },
-  {
-    id: "13",
-    name_th: "เทศบาลนครหาดใหญ่",
-    name_en: "Hat Yai City Municipality",
-    address_th: "ต.หาดใหญ่ อ.หาดใหญ่ จ.สงขลา 90110",
-    status: "ใช้งาน",
-    modules_count: 8,
-    active_modules_count: 8,
-    river_status: 14,
-    sense_status: 17,
-    active_users_count: 390,
-    registered_users_count: 585,
-    total_users_count: 585,
-    phone: "074-200-000",
-    latitude: 7.008,
-    longitude: 100.474,
-  },
-  {
-    id: "14",
-    name_th: "เทศบาลนครพิษณุโลก",
-    name_en: "Phitsanulok City Municipality",
-    address_th: "ต.ในเมือง อ.เมืองพิษณุโลก จ.พิษณุโลก 65000",
-    status: "ใช้งาน",
-    modules_count: 8,
-    active_modules_count: 8,
-    river_status: 12,
-    sense_status: "-",
-    active_users_count: 240,
-    registered_users_count: 360,
-    total_users_count: 360,
-    phone: "055-258-000",
-    latitude: 16.821,
-    longitude: 100.265,
-  },
-  {
-    id: "15",
-    name_th: "เทศบาลนครนครราชสีมา",
-    name_en: "Nakhon Ratchasima City Municipality",
-    address_th: "ต.ในเมือง อ.เมืองนครราชสีมา จ.นครราชสีมา 30000",
-    status: "ใช้งาน",
-    modules_count: 8,
-    active_modules_count: 8,
-    river_status: 17,
-    sense_status: 20,
-    active_users_count: 480,
-    registered_users_count: 720,
-    total_users_count: 720,
-    phone: "044-242-000",
-    latitude: 14.979,
-    longitude: 102.097,
-  },
-  {
-    id: "16",
-    name_th: "เทศบาลเมืองปราณบุรี",
-    name_en: "Pran Buri Town Municipality",
-    address_th: "ต.เขาน้อย อ.ปราณบุรี จ.ประจวบคีรีขันธ์ 77120",
-    status: "ไม่ใช้งาน",
-    modules_count: 8,
-    active_modules_count: 8,
-    river_status: "-",
-    sense_status: "-",
-    active_users_count: 65,
-    registered_users_count: 95,
-    total_users_count: 95,
-    phone: "032-621-123",
-    latitude: 12.395,
-    longitude: 99.912,
-  },
-  {
-    id: "17",
-    name_th: "เทศบาลเมืองชลบุรี",
-    name_en: "Chonburi Town Municipality",
-    address_th: "ต.บางปลาสร้อย อ.เมืองชลบุรี จ.ชลบุรี 20000",
-    status: "ใช้งาน",
-    modules_count: 8,
-    active_modules_count: 8,
-    river_status: 11,
-    sense_status: 15,
-    active_users_count: 330,
-    registered_users_count: 495,
-    total_users_count: 495,
-    phone: "038-278-000",
-    latitude: 13.361,
-    longitude: 100.984,
-  },
-  {
-    id: "18",
-    name_th: "เทศบาลเมืองระยอง",
-    name_en: "Rayong Town Municipality",
-    address_th: "ต.ท่าประดู่ อ.เมืองระยอง จ.ระยอง 21000",
-    status: "ใช้งาน",
-    modules_count: 8,
-    active_modules_count: 8,
-    river_status: 13,
-    sense_status: 16,
-    active_users_count: 290,
-    registered_users_count: 435,
-    total_users_count: 435,
-    phone: "038-611-000",
-    latitude: 12.681,
-    longitude: 101.281,
-  },
-  {
-    id: "19",
-    name_th: "เทศบาลเมืองภูเก็ต",
-    name_en: "Phuket Town Municipality",
-    address_th: "ต.ตลาดใหญ่ อ.เมืองภูเก็ต จ.ภูเก็ต 83000",
-    status: "ใช้งาน",
-    modules_count: 8,
-    active_modules_count: 8,
-    river_status: "-",
-    sense_status: 14,
-    active_users_count: 360,
-    registered_users_count: 540,
-    total_users_count: 540,
-    phone: "076-211-000",
-    latitude: 7.880,
-    longitude: 98.392,
-  },
-  {
-    id: "20",
-    name_th: "เทศบาลเมืองหัวหิน",
-    name_en: "Hua Hin Town Municipality",
-    address_th: "ต.หัวหิน อ.หัวหิน จ.ประจวบคีรีขันธ์ 77110",
-    status: "ใช้งาน",
-    modules_count: 8,
-    active_modules_count: 8,
-    river_status: 10,
-    sense_status: 15,
-    active_users_count: 175,
-    registered_users_count: 260,
-    total_users_count: 260,
-    phone: "032-511-047",
-    latitude: 12.568,
-    longitude: 99.957,
-  },
-];
+export interface CityStatistics {
+  city_id: string;
+  registered_users: number;
+  active_users: number;
+  admin_users: number;
+  elderly_and_disabled_count: number;
+  bedridden_count: number;
+  general_complaints_count: number;
+  total_complaints_count: number;
+  resolved_complaints_count: number;
+  tax_land_building_count: number;
+  tax_signboard_count: number;
+  pet_dogs_count: number;
+  pet_cats_count: number;
+  verified_users_count: number;
+  public_relations_count: number;
+  notifications_count: number;
+  waste_members_count: number;
+  waste_bills_count: number;
+  waste_pending_bills_count: number;
+  waste_paid_bills_count: number;
+  waste_system_mode: string;
+  cctv_cameras_count: number;
+  cctv_views_count: number;
+  river_stations_count: number;
+  river_online_count: number;
+  river_offline_count: number;
+  sense_stations_count: number;
+  sense_online_count: number;
+  sense_offline_count: number;
+}
 
 function sortCitiesWithFahfonFirst(list: City[]): City[] {
-  const filtered = list.filter(
-    (item) => !item.name_th?.toLowerCase().includes("default") && !item.name_en?.toLowerCase().includes("default")
-  );
-  const fahfon = filtered.find((item) => item.name_th === "เมืองฟ้าฝน" || item.id === "1");
-  const others = filtered
-    .filter((item) => item.name_th !== "เมืองฟ้าฝน" && item.id !== "1")
-    .sort((a, b) => {
-      const idA = parseInt(a.id, 10);
-      const idB = parseInt(b.id, 10);
-      if (!isNaN(idA) && !isNaN(idB)) return idB - idA;
-      return b.name_th.localeCompare(a.name_th, "th");
-    });
+  if (!list || list.length === 0) return [];
+  const fahfon = list.find((item) => item.name_th?.includes("ฟ้าฝน"));
+  const others = list
+    .filter((item) => !item.name_th?.includes("ฟ้าฝน"))
+    .sort((a, b) => (a.name_th || "").localeCompare(b.name_th || "", "th"));
   return fahfon ? [fahfon, ...others] : others;
 }
 
 let cachedCities: City[] | null = null;
 
 export function useCities() {
-  const [cities, setCities] = useState<City[]>(() => cachedCities || sortCitiesWithFahfonFirst(INITIAL_MOCK_CITIES));
+  const [cities, setCities] = useState<City[]>(() => cachedCities || []);
   const [loading, setLoading] = useState(() => !cachedCities);
   const [updating, setUpdating] = useState(false);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [modules, setModules] = useState<ModuleStatus[]>([]);
   const [loadingModules, setLoadingModules] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchCities();
-  }, []);
-
-  async function fetchCities() {
+  const fetchCities = useCallback(async () => {
     try {
+      setError(null);
       const res = await api.get("/cities");
-      if (res.data && Array.isArray(res.data) && res.data.length > 0) {
-        const mergedMap = new Map<string, City>();
-        INITIAL_MOCK_CITIES.forEach((item) => mergedMap.set(item.name_th, item));
-
-        res.data.forEach((c: City, idx: number) => {
-          if (c.name_th?.toLowerCase().includes("default") || c.name_en?.toLowerCase().includes("default")) {
-            return;
-          }
-          const mockItem = INITIAL_MOCK_CITIES[idx % INITIAL_MOCK_CITIES.length];
-          const active = mockItem.active_users_count || 150;
-          const registered = Math.round(active * 1.5);
-
-          const isFahfon = c.name_th?.includes("ฟ้าฝน") || mockItem.name_th?.includes("ฟ้าฝน");
-          mergedMap.set(c.name_th, {
-            ...mockItem,
-            ...c,
-            logo_url: isFahfon ? "/images/logo_fahfon.jpeg" : (c.logo_url || mockItem.logo_url),
-            stamp_url: isFahfon ? "/images/stamp_fahfon.png" : (c.stamp_url || mockItem.stamp_url),
-            modules_count: 8,
-            active_modules_count: 8,
-            river_status: c.river_status ?? mockItem.river_status ?? 10,
-            sense_status: c.sense_status ?? mockItem.sense_status ?? 15,
-            active_users_count: active,
-            registered_users_count: registered,
-            total_users_count: registered,
+      if (res.data && Array.isArray(res.data)) {
+        const cityList: City[] = res.data
+          .map((c: City) => {
+            const isFahfon = c.name_th?.includes("ฟ้าฝน");
+            const totalUsers = c.total_users_count || 0;
+            return {
+              ...c,
+              logo_url: c.logo_url || "",
+              modules_count: c.modules_count || c.active_modules_count || 0,
+              active_modules_count: c.active_modules_count || 0,
+              admins_count: c.admins_count || 0,
+              river_status: c.river_status ?? 0,
+              sense_status: c.sense_status ?? 0,
+              active_users_count: totalUsers,
+              registered_users_count: totalUsers,
+              total_users_count: totalUsers,
+            };
           });
-        });
 
-        const list = sortCitiesWithFahfonFirst(Array.from(mergedMap.values()));
+        const list = sortCitiesWithFahfonFirst(cityList);
         cachedCities = list;
         setCities(list);
+
+        // Fetch real SENSE device counts from Micro-API asynchronously in the background
+        fetchSenseDeviceCountsForCities(list).then((senseCounts) => {
+          if (senseCounts && senseCounts.size > 0) {
+            setCities((prev) => {
+              const updated = prev.map((c) => {
+                const count = senseCounts.get(c.id);
+                if (count === undefined) return c;
+                return {
+                  ...c,
+                  sense_status: count,
+                };
+              });
+              cachedCities = updated;
+              return updated;
+            });
+          }
+        }).catch(() => {});
       } else {
-        const fallback = sortCitiesWithFahfonFirst(INITIAL_MOCK_CITIES);
-        cachedCities = fallback;
-        setCities(fallback);
+        setCities([]);
       }
-    } catch {
-      const fallback = sortCitiesWithFahfonFirst(INITIAL_MOCK_CITIES);
-      cachedCities = fallback;
-      setCities(fallback);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : "Failed to load cities";
+      setError(errMsg);
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    fetchCities();
+  }, [fetchCities]);
 
   const fetchCityByID = useCallback(async (id: string) => {
-    const found = cities.find((c) => c.id === id);
-    if (found) return found;
     try {
       const res = await api.get(`/cities/${id}`);
-      return res.data as City;
+      if (res.data) {
+        const c = res.data as City;
+        return {
+          ...c,
+          logo_url: c.logo_url || "",
+        };
+      }
+      return null;
+    } catch {
+      const found = cities.find((c) => c.id === id);
+      return found || null;
+    }
+  }, [cities]);
+
+  const fetchCityStatistics = useCallback(async (id: string): Promise<CityStatistics | null> => {
+    try {
+      const res = await api.get(`/cities/${id}/statistics`);
+      if (res.data) {
+        return res.data as CityStatistics;
+      }
+      return null;
     } catch {
       return null;
     }
-  }, [cities]);
+  }, []);
 
   const selectCity = useCallback(async (city: City) => {
     setSelectedCity(city);
@@ -493,29 +202,37 @@ export function useCities() {
     }
   }, []);
 
-  async function createCity(data: Omit<City, "id">) {
+  async function createCity(data: Partial<City>): Promise<boolean> {
     setUpdating(true);
     try {
-      const active = data.active_users_count || 200;
-      const registered = Math.round(active * 1.5);
-
-      const newCity: City = {
-        ...data,
-        modules_count: 8,
-        active_modules_count: 8,
-        river_status: data.river_status ?? 10,
-        sense_status: data.sense_status ?? 12,
-        active_users_count: active,
-        registered_users_count: registered,
-        total_users_count: registered,
-        id: String(Date.now()),
-      };
-      setCities((prev) => {
-        const updated = [newCity, ...prev];
-        cachedCities = updated;
-        return updated;
+      const res = await api.post("/cities", {
+        name_th: data.name_th,
+        name_en: data.name_en,
+        address_th: data.address_th,
+        address_en: data.address_en,
+        phone: data.phone,
+        latitude: data.latitude || 13.7563,
+        longitude: data.longitude || 100.5018,
+        logo_url: data.logo_url || null,
+        admin_name: data.admin_name || "",
+        admin_last_name: data.admin_last_name || "",
+        admin_email: data.admin_email || "",
+        admin_phone: data.admin_phone || "",
+        admin_password: data.admin_password || "",
+        bank_name: data.bank_name || "",
+        bank_account_number: data.bank_account_number || "",
+        bank_account_name: data.bank_account_name || "",
+        bank_branch: data.bank_branch || "",
+        bank_type: data.bank_type || "",
+        selected_module_ids: data.selected_module_ids || [],
       });
-      return true;
+
+
+      if (res.status === 200 || res.status === 201) {
+        await fetchCities();
+        return true;
+      }
+      return false;
     } catch {
       return false;
     } finally {
@@ -523,30 +240,37 @@ export function useCities() {
     }
   }
 
-  async function updateCity(id: string, data: Partial<City>) {
+  async function updateCity(id: string, data: Partial<City>): Promise<boolean> {
     setUpdating(true);
     try {
-      setCities((prev) => {
-        const updated = prev.map((c) => {
-          if (c.id !== id) return c;
-          const active = data.active_users_count ?? c.active_users_count ?? 200;
-          const registered = Math.round(active * 1.5);
-          return {
-            ...c,
-            ...data,
-            modules_count: 8,
-            active_modules_count: 8,
-            river_status: data.river_status ?? c.river_status ?? 10,
-            sense_status: data.sense_status ?? c.sense_status ?? 12,
-            active_users_count: active,
-            registered_users_count: registered,
-            total_users_count: registered,
-          };
-        });
-        cachedCities = updated;
-        return updated;
+      const res = await api.put(`/cities/${id}`, {
+        name_th: data.name_th,
+        name_en: data.name_en || "",
+        address_th: data.address_th || "",
+        address_en: data.address_en || "",
+        phone: data.phone || "",
+        latitude: data.latitude,
+        longitude: data.longitude,
+        logo_url: data.logo_url || null,
+        status: data.status,
+        // Bank Details
+        bank_name: data.bank_name || "",
+        bank_account_number: data.bank_account_number || "",
+        bank_account_name: data.bank_account_name || "",
+        bank_branch: data.bank_branch || "",
+        bank_type: data.bank_type || "",
+        // Admin Basic Info
+        admin_name: data.admin_name || "",
+        admin_last_name: data.admin_last_name || "",
+        admin_email: data.admin_email || "",
+        admin_phone: data.admin_phone || "",
       });
-      return true;
+
+      if (res.status === 200) {
+        await fetchCities();
+        return true;
+      }
+      return false;
     } catch {
       return false;
     } finally {
@@ -554,12 +278,35 @@ export function useCities() {
     }
   }
 
-  async function toggleModule(cityId: string, moduleId: string, currentStatus: boolean) {
+
+  async function toggleCityStatus(id: string, status: string): Promise<boolean> {
+    setUpdating(true);
     try {
-      setModules((prev) =>
-        prev.map((m) => (m.module_id === moduleId ? { ...m, is_active: !currentStatus } : m))
-      );
-      return true;
+      const res = await api.patch(`/cities/${id}/status`, { status });
+      if (res.status === 200) {
+        await fetchCities();
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    } finally {
+      setUpdating(false);
+    }
+  }
+
+  async function toggleModule(cityId: string, moduleId: string, currentStatus: boolean): Promise<boolean> {
+    try {
+      const res = await api.put(`/cities/${cityId}/modules/${moduleId}`, {
+        is_active: !currentStatus,
+      });
+      if (res.status === 200) {
+        setModules((prev) =>
+          prev.map((m) => (m.module_id === moduleId ? { ...m, is_active: !currentStatus } : m))
+        );
+        return true;
+      }
+      return false;
     } catch {
       return false;
     }
@@ -578,13 +325,16 @@ export function useCities() {
     inactiveCities,
     loading,
     updating,
+    error,
     selectedCity,
     modules,
     loadingModules,
     selectCity,
     fetchCityByID,
+    fetchCityStatistics,
     createCity,
     updateCity,
+    toggleCityStatus,
     toggleModule,
     refetchCities: fetchCities,
   };

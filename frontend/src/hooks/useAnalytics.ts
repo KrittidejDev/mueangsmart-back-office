@@ -1,6 +1,14 @@
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 
+export interface MonthlyTrendStat {
+  year: number;
+  month: number;
+  month_name: string;
+  active_count: number;
+  inactive_count: number;
+}
+
 export interface Overview {
   total_cities: number;
   active_cities: number;
@@ -13,6 +21,7 @@ export interface Overview {
   approved_users?: number;
   pending_users?: number;
   rejected_users?: number;
+  monthly_trends?: MonthlyTrendStat[];
 }
 
 export function useAnalytics() {

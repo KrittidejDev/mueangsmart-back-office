@@ -1,0 +1,15 @@
+{
+  "name": "mueangsmart-back-office-backend",
+  "version": "1.0.0",
+  "description": "MueangSmart Back Office SuperAdmin Go Fiber v3 Backend",
+  "main": "cmd/server/main.go",
+  "scripts": {
+    "dev": "nodemon --exec go run cmd/server/main.go --ext go,env"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}

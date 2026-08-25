@@ -10,7 +10,9 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { CityFormModal } from "@/components/cities/CityFormModal";
 import { SuccessModal } from "@/components/ui/SuccessModal";
+import { resolveImageUrl } from "@/lib/image";
 import { useCities, City } from "@/hooks/useCities";
+import { useAnalytics } from "@/hooks/useAnalytics";
 import { useAuthStore } from "@/store/useAuthStore";
 import { 
   Building2, 
@@ -50,18 +52,16 @@ function SortIcon({
 }
 
 function CityLogo({ logoUrl, name }: { logoUrl?: string; name: string }) {
-  const isFahfon = name?.includes("ฟ้าฝน");
-  const targetLogo = isFahfon ? "/images/logo_fahfon.jpeg" : logoUrl;
+  const cleanUrl =
+    logoUrl?.startsWith("blob:") || logoUrl?.startsWith("data:")
+      ? undefined
+      : logoUrl;
+  const targetLogo = resolveImageUrl(cleanUrl);
   const [imgError, setImgError] = useState(false);
 
-  const isValidUrl =
-    targetLogo &&
-    (targetLogo.startsWith("http://") ||
-      targetLogo.startsWith("https://") ||
-      targetLogo.startsWith("/") ||
-      targetLogo.startsWith("data:image/"));
+  const isValidUrl = Boolean(targetLogo);
 
-  if (!targetLogo || (!isFahfon && (imgError || !isValidUrl))) {
+  if (!targetLogo || imgError || !isValidUrl) {
     return (
       <div className="w-9 h-9 rounded-full bg-slate-100 border border-slate-200/80 text-slate-400 flex items-center justify-center flex-shrink-0 shadow-2xs">
         <Building2 className="w-4 h-4 text-slate-400" />
@@ -77,7 +77,7 @@ function CityLogo({ logoUrl, name }: { logoUrl?: string; name: string }) {
       height={36}
       unoptimized
       onError={() => {
-        if (!isFahfon) setImgError(true);
+        setImgError(true);
       }}
       className="w-9 h-9 rounded-full object-cover border border-slate-200/80 shadow-2xs flex-shrink-0"
     />
@@ -113,18 +113,20 @@ export default function CitiesPage() {
     loading,
     createCity,
     updateCity,
+    fetchCityByID,
   } = useCities();
 
+  const { overview } = useAnalytics();
   const canEdit = currentUser?.roleName === "SuperAdmin" || currentUser?.roleName === "Admin";
 
   const totalUsers = cities.reduce((acc, c) => acc + (c.active_users_count || 0), 0);
-  const totalRegistered = cities.reduce((acc, c) => acc + (c.registered_users_count || Math.round((c.active_users_count || 0) * 1.5)), 0);
+  const totalRegistered = overview?.registered_users ?? cities.reduce((acc, c) => acc + (c.registered_users_count || c.active_users_count || 0), 0);
 
   const activePercent = totalCities > 0 ? ((activeCities / totalCities) * 100).toFixed(2) : "0.00";
   const inactivePercent = totalCities > 0 ? ((inactiveCities / totalCities) * 100).toFixed(2) : "0.00";
 
   const filteredCities = cities.filter((city) =>
-    city.name_th.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (city.name_th && city.name_th.toLowerCase().includes(searchQuery.toLowerCase())) ||
     (city.address_th && city.address_th.toLowerCase().includes(searchQuery.toLowerCase())) ||
     (city.name_en && city.name_en.toLowerCase().includes(searchQuery.toLowerCase()))
   );
@@ -177,23 +179,7 @@ export default function CitiesPage() {
   };
 
   const handleCreateSubmit = async (data: Partial<City>) => {
-    const success = await createCity({
-      name_th: data.name_th || "",
-      name_en: data.name_en || "",
-      address_th: data.address_th || "",
-      address_en: data.address_en || "",
-      phone: data.phone || "",
-      status: data.status || "ใช้งาน",
-      latitude: data.latitude || 13.7563,
-      longitude: data.longitude || 100.5018,
-      modules_count: 8,
-      active_modules_count: 8,
-      river_status: data.river_status || 10,
-      sense_status: data.sense_status || 12,
-      active_users_count: data.active_users_count || 200,
-      registered_users_count: data.registered_users_count || 300,
-      total_users_count: data.registered_users_count || 300,
-    });
+    const success = await createCity(data);
 
     if (success) {
       setSuccessModalConfig({
@@ -212,9 +198,14 @@ export default function CitiesPage() {
     return success;
   };
 
-  const handleOpenEditModal = (city?: City) => {
+  const handleOpenEditModal = async (city?: City) => {
     const targetCity = city || (cities.length > 0 ? cities[0] : null);
-    setEditingCity(targetCity);
+    if (targetCity) {
+      const fullCity = await fetchCityByID(targetCity.id);
+      setEditingCity(fullCity || targetCity);
+    } else {
+      setEditingCity(null);
+    }
     setEditModalOpen(true);
   };
 
@@ -451,7 +442,7 @@ export default function CitiesPage() {
                             </span>
                           </td>
                           <td className="py-3.5 px-2 text-center font-medium text-slate-800 whitespace-nowrap">
-                            {city.modules_count || city.active_modules_count || 8}
+                            {city.modules_count ?? city.active_modules_count ?? 0}
                           </td>
                           <td className="py-3.5 px-2 text-center font-medium text-slate-800 whitespace-nowrap">
                             {city.river_status ?? "-"}
@@ -463,7 +454,7 @@ export default function CitiesPage() {
                             {(city.active_users_count || 0).toLocaleString()}
                           </td>
                           <td className="py-3.5 px-2 text-right font-medium text-slate-800 whitespace-nowrap">
-                            {(city.registered_users_count || Math.round((city.active_users_count || 0) * 1.5)).toLocaleString()}
+                            {(city.registered_users_count || city.active_users_count || 0).toLocaleString()}
                           </td>
                           <td className="py-3.5 pl-2 pr-4 sm:pr-6 text-center whitespace-nowrap space-x-1.5">
                             <Link
