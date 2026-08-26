@@ -115,25 +115,122 @@ func (r *cityRepository) UpsertBankDetail(ctx context.Context, municipalityID uu
 		}).Error
 }
 
-// UpdateAdminUserBasicInfo updates non-sensitive fields (name, email, phone) of the city's primary admin.
-func (r *cityRepository) UpdateAdminUserBasicInfo(ctx context.Context, municipalityID uuid.UUID, req domain.UpdateCityRequest, updatedBy string) error {
+// UpsertAdminUser updates existing admin user or creates a new AdminUser with Super Admin department if none existed.
+func (r *cityRepository) UpsertAdminUser(ctx context.Context, municipalityID uuid.UUID, req domain.UpdateCityRequest, updatedBy string) error {
 	if strings.TrimSpace(req.AdminEmail) == "" && strings.TrimSpace(req.AdminName) == "" {
-		return nil // nothing to update
+		return nil
 	}
 
-	return r.db.WithContext(ctx).
-		Model(&domain.AdminUser{}).
+	var existing domain.AdminUser
+	err := r.db.WithContext(ctx).
 		Where("\"MunicipalityId\" = ?", municipalityID).
 		Order("\"CreatedDate\" ASC").
-		Limit(1).
-		Updates(map[string]interface{}{
+		First(&existing).Error
+
+	if err == nil {
+		updates := map[string]interface{}{
 			"Name":        req.AdminName,
 			"LastName":    req.AdminLastName,
 			"Email":       req.AdminEmail,
 			"Phone":       req.AdminPhone,
 			"UpdatedBy":   updatedBy,
 			"UpdatedDate": time.Now(),
-		}).Error
+		}
+		if strings.TrimSpace(req.AdminPassword) != "" {
+			hashBytes, err := bcrypt.GenerateFromPassword([]byte(req.AdminPassword), bcrypt.DefaultCost)
+			if err == nil {
+				updates["PasswordHash"] = string(hashBytes)
+			}
+		}
+		return r.db.WithContext(ctx).
+			Model(&domain.AdminUser{}).
+			Where("\"Id\" = ?", existing.Id).
+			Updates(updates).Error
+	}
+
+	// No existing admin user found -> CREATE new AdminUser + Super Admin Department + DepartmentModules + AdminUserDepartments
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		rawPassword := req.AdminPassword
+		if rawPassword == "" {
+			rawPassword = "MueangSmart@" + municipalityID.String()[:8]
+		}
+		hashBytes, err := bcrypt.GenerateFromPassword([]byte(rawPassword), bcrypt.DefaultCost)
+		if err != nil {
+			return fmt.Errorf("hash admin password: %w", err)
+		}
+
+		roleUUID, _ := uuid.Parse(superAdminRoleID)
+		adminUserID := uuid.New()
+		adminUser := domain.AdminUser{
+			Id:             adminUserID,
+			Name:           req.AdminName,
+			LastName:       req.AdminLastName,
+			Email:          req.AdminEmail,
+			Phone:          req.AdminPhone,
+			Position:       "SuperAdmin",
+			PasswordHash:   string(hashBytes),
+			MunicipalityId: municipalityID,
+			RoleId:         &roleUUID,
+			CreatedBy:      updatedBy,
+			CreatedDate:    time.Now(),
+			UpdatedBy:      updatedBy,
+			UpdatedDate:    time.Now(),
+		}
+		if err := tx.Create(&adminUser).Error; err != nil {
+			return fmt.Errorf("create admin user: %w", err)
+		}
+
+		// Ensure Super Admin Department exists for this municipality
+		var dept domain.Department
+		err = tx.Where("\"MunicipalityId\" = ? AND \"IsSuperAdmin\" = ?", municipalityID, true).First(&dept).Error
+		var deptID uuid.UUID
+		if err != nil {
+			deptID = uuid.New()
+			dept = domain.Department{
+				Id:             deptID,
+				Name:           "Super Admin",
+				Status:         "Active",
+				Description:    "Super Admin",
+				MunicipalityId: municipalityID,
+				IsSuperAdmin:   true,
+				CreatedBy:      updatedBy,
+				CreatedDate:    time.Now(),
+				UpdatedBy:      updatedBy,
+				UpdatedDate:    time.Now(),
+			}
+			if err := tx.Create(&dept).Error; err != nil {
+				return fmt.Errorf("create department: %w", err)
+			}
+
+			// Add DepartmentModules
+			cityMgmtModuleUUID, _ := uuid.Parse(cityManagementModuleID)
+			deptModule := domain.DepartmentModule{
+				Id:           uuid.New(),
+				DepartmentId: deptID,
+				ModuleId:     cityMgmtModuleUUID,
+				CreatedBy:    updatedBy,
+				CreatedDate:  time.Now(),
+				UpdatedBy:    updatedBy,
+				UpdatedDate:  time.Now(),
+			}
+			if err := tx.Create(&deptModule).Error; err != nil {
+				return fmt.Errorf("create department module: %w", err)
+			}
+		} else {
+			deptID = dept.Id
+		}
+
+		// Link AdminUser to Department
+		adminUserDept := domain.AdminUserDepartment{
+			AdminUserId:  adminUserID,
+			DepartmentId: deptID,
+			CreatedBy:    updatedBy,
+			CreatedDate:  time.Now(),
+			UpdatedBy:    updatedBy,
+			UpdatedDate:  time.Now(),
+		}
+		return tx.Create(&adminUserDept).Error
+	})
 }
 
 // CreateFullCityOnboarding creates a municipality and all required related records

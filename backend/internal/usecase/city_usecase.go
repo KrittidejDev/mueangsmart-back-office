@@ -167,8 +167,13 @@ func (u *cityUseCase) UpdateCity(ctx context.Context, id uuid.UUID, req domain.U
 	// Upsert bank detail (best-effort — does not fail the whole update)
 	_ = u.cityRepo.UpsertBankDetail(ctx, id, req, updatedBy)
 
-	// Update admin user basic info (best-effort)
-	_ = u.cityRepo.UpdateAdminUserBasicInfo(ctx, id, req, updatedBy)
+	// Upsert admin user (create if new, update if exists, with password hashing if provided)
+	_ = u.cityRepo.UpsertAdminUser(ctx, id, req, updatedBy)
+
+	// Sync enabled city modules (toggle on/off based on user selection in modal)
+	if req.SelectedModuleIds != nil {
+		_ = u.moduleRepo.SyncCityModules(ctx, id, req.SelectedModuleIds)
+	}
 
 	return nil
 }
