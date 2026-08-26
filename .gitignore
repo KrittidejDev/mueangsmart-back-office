@@ -17,3 +17,9 @@ backend/main
 .idea/
 
 # Note: .env files are included for dev environment setup as required by project policy.
+# Environment Variables
+.env
+.env.local
+.env.*.local
+frontend/.env.local
+backend/.env
