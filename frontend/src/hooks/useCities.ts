@@ -318,11 +318,14 @@ export function useCities() {
         bank_account_name: data.bank_account_name || "",
         bank_branch: data.bank_branch || "",
         bank_type: data.bank_type || "",
-        // Admin Basic Info
+        // Admin Info
         admin_name: data.admin_name || "",
         admin_last_name: data.admin_last_name || "",
         admin_email: data.admin_email || "",
         admin_phone: data.admin_phone || "",
+        admin_password: data.admin_password || "",
+        // Selected Modules
+        selected_module_ids: data.selected_module_ids || [],
       });
 
       if (res.status === 200) {

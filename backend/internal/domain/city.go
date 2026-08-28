@@ -89,13 +89,16 @@ type UpdateCityRequest struct {
 	BankBranch        string `json:"bank_branch"`
 	BankType          string `json:"bank_type"`
 
-	// Local Admin Basic Info (non-sensitive fields only; password is separate)
+	// Local Admin Info (Upsert on update)
 	AdminName     string `json:"admin_name"`
 	AdminLastName string `json:"admin_last_name"`
 	AdminEmail    string `json:"admin_email"`
 	AdminPhone    string `json:"admin_phone"`
-}
+	AdminPassword string `json:"admin_password"`
 
+	// Selected Module IDs
+	SelectedModuleIds []string `json:"selected_module_ids"`
+}
 
 type UpdateCityStatusRequest struct {
 	Status string `json:"status" validate:"required"` // e.g. "Active", "Suspended", "Maintenance"
@@ -153,7 +156,7 @@ type CityRepository interface {
 	FindBankDetailByMunicipalityID(ctx context.Context, municipalityID uuid.UUID) (*MunicipalityBankDetail, error)
 	FindAdminUserByMunicipalityID(ctx context.Context, municipalityID uuid.UUID) (*AdminUser, error)
 	UpsertBankDetail(ctx context.Context, municipalityID uuid.UUID, req UpdateCityRequest, updatedBy string) error
-	UpdateAdminUserBasicInfo(ctx context.Context, municipalityID uuid.UUID, req UpdateCityRequest, updatedBy string) error
+	UpsertAdminUser(ctx context.Context, municipalityID uuid.UUID, req UpdateCityRequest, updatedBy string) error
 	CreateFullCityOnboarding(ctx context.Context, city *Municipality, req CreateCityRequest, creator string) error
 	Update(ctx context.Context, city *Municipality) error
 	UpdateStatus(ctx context.Context, id uuid.UUID, status, updatedBy string) error
@@ -169,6 +172,7 @@ type ModuleRepository interface {
 	FindByMunicipalityID(ctx context.Context, municipalityID uuid.UUID) ([]CityModuleStatus, error)
 	FindAllMasterModules(ctx context.Context) ([]CityModuleStatus, error)
 	UpsertModuleStatus(ctx context.Context, municipalityID, moduleID uuid.UUID, isActive bool, updatedBy string) error
+	SyncCityModules(ctx context.Context, municipalityID uuid.UUID, selectedModuleIDs []string) error
 	GetCityStatistics(ctx context.Context, cityID uuid.UUID) (*CityModuleDetailStatistics, error)
 }
 

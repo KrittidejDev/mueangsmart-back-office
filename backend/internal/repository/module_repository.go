@@ -134,6 +134,46 @@ func (r *moduleRepository) UpsertModuleStatus(ctx context.Context, municipalityI
 	`, municipalityID, moduleID).Error
 }
 
+func (r *moduleRepository) SyncCityModules(ctx context.Context, municipalityID uuid.UUID, selectedModuleIDs []string) error {
+	if selectedModuleIDs == nil {
+		return nil
+	}
+
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var selectedUUIDs []uuid.UUID
+		for _, idStr := range selectedModuleIDs {
+			if u, err := uuid.Parse(idStr); err == nil {
+				selectedUUIDs = append(selectedUUIDs, u)
+			}
+		}
+
+		if len(selectedUUIDs) > 0 {
+			if err := tx.Exec(`
+				DELETE FROM "MunicipalityModules"
+				WHERE "MunicipalityId" = ? AND "ModuleId" NOT IN (?)
+			`, municipalityID, selectedUUIDs).Error; err != nil {
+				return err
+			}
+
+			for _, u := range selectedUUIDs {
+				if err := tx.Exec(`
+					INSERT INTO "MunicipalityModules" ("MunicipalityId", "ModuleId")
+					VALUES (?, ?)
+					ON CONFLICT ("MunicipalityId", "ModuleId") DO NOTHING
+				`, municipalityID, u).Error; err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+
+		return tx.Exec(`
+			DELETE FROM "MunicipalityModules"
+			WHERE "MunicipalityId" = ?
+		`, municipalityID).Error
+	})
+}
+
 func (r *moduleRepository) GetCityStatistics(ctx context.Context, cityID uuid.UUID) (*domain.CityModuleDetailStatistics, error) {
 	stats := &domain.CityModuleDetailStatistics{
 		CityId: cityID,
