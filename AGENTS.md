@@ -22,6 +22,7 @@
 - ข้อมูลใน `MueangSmart-DumpFromVM` PostgreSQL เป็นข้อมูล Production ของระบบ MueangSmart
 - การเชื่อมโยงข้อมูลเดิม เช่น ตาราง `Municipalities`, `AdminUsers`, `MunicipalityModules`, `UserMunicipalities`, `ModuleElderlyAndDisabled`, `ModuleBedriddenPatient`, `ActivityLogs` จะต้องทำในลักษณะ **Read-Only หรือ Safe Transactional Query** ผ่าน Go Backend Layer เท่านั้น
 - **ห้ามส่งคำสั่ง SQL Mutate (INSERT/UPDATE/DELETE) โดยตรงเข้าฐานข้อมูลโดยไม่ผ่าน Application Layer** 
+- **NO RAW SQL EXECUTION BY AI (กฎเด็ดขาด: ห้าม AI รันคำสั่ง SQL เอง):** AI ถูกห้ามอย่างเด็ดขาดในการรันคำสั่ง SQL แก้ไขข้อมูล (INSERT/UPDATE/DELETE/ALTER/DROP) หรือเขียนสคริปต์ยิงแก้ไขฐานข้อมูลโดยตรง หากมีคำสั่ง SQL ที่จำเป็นต้องรัน **ให้ AI นำเสนอคำสั่ง SQL ในแชทเพื่อให้ USER เป็นคนนำไปรันเองเท่านั้น** 
 
 ### 1.2 User & Permission Domain Isolation & Naming Convention
 - ระบบ SuperAdmin User และ RBAC Management ของ Back Office **ต้องแยกอิสระจากตาราง User หน้าบ้านโดยสมบูรณ์**
