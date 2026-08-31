@@ -255,21 +255,60 @@ func (r *moduleRepository) GetCityStatistics(ctx context.Context, cityID uuid.UU
 	r.db.WithContext(ctx).Table("\"ModuleNotifications\"").Where("\"MunicipalityId\" = ?", cityID).Count(&stats.NotificationsCount)
 
 	// 8. Waste Fees (Members, Total Bills, Paid Bills, Pending Bills)
-	r.db.WithContext(ctx).Table("\"ModuleWasteFeesMembers\"").
-		Where("\"MunicipalityId\" = ? AND (\"Status\" IS NULL OR \"Status\" != 'Deleted')", cityID).
-		Count(&stats.WasteMembersCount)
+	if stats.WasteSystemMode == "ระบบใหม่" {
+		r.db.WithContext(ctx).Table("\"ModuleWasteFeesMembers\"").
+			Where("\"MunicipalityId\" = ? AND (\"Status\" IS NULL OR \"Status\" != 'Deleted')", cityID).
+			Count(&stats.WasteMembersCount)
 
-	r.db.WithContext(ctx).Table("\"ModuleWasteFeesBills\"").
-		Where("\"MunicipalityId\" = ? AND (\"Status\" IS NULL OR \"Status\" != 'Cancelled')", cityID).
-		Count(&stats.WasteBillsCount)
+		r.db.WithContext(ctx).Table("\"ModuleWasteFeesBills\"").
+			Where("\"MunicipalityId\" = ? AND (\"Status\" IS NULL OR \"Status\" != 'Cancelled')", cityID).
+			Count(&stats.WasteBillsCount)
 
-	r.db.WithContext(ctx).Table("\"ModuleWasteFeesBills\"").
-		Where("\"MunicipalityId\" = ? AND (\"Status\" ILIKE 'Completed' OR \"Status\" ILIKE 'Paid')", cityID).
-		Count(&stats.WastePaidBillsCount)
+		r.db.WithContext(ctx).Table("\"ModuleWasteFeesBills\"").
+			Where("\"MunicipalityId\" = ? AND (\"Status\" ILIKE 'Completed' OR \"Status\" ILIKE 'Paid')", cityID).
+			Count(&stats.WastePaidBillsCount)
 
-	stats.WastePendingBillsCount = stats.WasteBillsCount - stats.WastePaidBillsCount
-	if stats.WastePendingBillsCount < 0 {
-		stats.WastePendingBillsCount = 0
+		stats.WastePendingBillsCount = stats.WasteBillsCount - stats.WastePaidBillsCount
+		if stats.WastePendingBillsCount < 0 {
+			stats.WastePendingBillsCount = 0
+		}
+	} else {
+		// Legacy Mode (ModuleWasteFees)
+		r.db.WithContext(ctx).Table("\"ModuleWasteFees\"").
+			Where("\"MunicipalityId\" = ?", cityID).
+			Distinct("\"IdentityNumber\"").
+			Count(&stats.WasteMembersCount)
+
+		r.db.WithContext(ctx).Table("\"ModuleWasteFees\"").
+			Where("\"MunicipalityId\" = ?", cityID).
+			Count(&stats.WasteBillsCount)
+
+		r.db.WithContext(ctx).Table("\"ModuleWasteFees\"").
+			Where("\"MunicipalityId\" = ? AND (\"Status\" ILIKE 'Completed' OR \"Status\" ILIKE 'Paid')", cityID).
+			Count(&stats.WastePaidBillsCount)
+
+		r.db.WithContext(ctx).Table("\"ModuleWasteFees\"").
+			Where("\"MunicipalityId\" = ? AND (\"Status\" NOT ILIKE 'Completed' AND \"Status\" NOT ILIKE 'Paid')", cityID).
+			Count(&stats.WastePendingBillsCount)
+	}
+
+	// Fallback check: If New Mode returned 0 bills but Legacy has records, populate from Legacy
+	if stats.WasteBillsCount == 0 {
+		var legacyCount int64
+		r.db.WithContext(ctx).Table("\"ModuleWasteFees\"").Where("\"MunicipalityId\" = ?", cityID).Count(&legacyCount)
+		if legacyCount > 0 {
+			stats.WasteBillsCount = legacyCount
+			r.db.WithContext(ctx).Table("\"ModuleWasteFees\"").
+				Where("\"MunicipalityId\" = ?", cityID).
+				Distinct("\"IdentityNumber\"").
+				Count(&stats.WasteMembersCount)
+			r.db.WithContext(ctx).Table("\"ModuleWasteFees\"").
+				Where("\"MunicipalityId\" = ? AND (\"Status\" ILIKE 'Completed' OR \"Status\" ILIKE 'Paid')", cityID).
+				Count(&stats.WastePaidBillsCount)
+			r.db.WithContext(ctx).Table("\"ModuleWasteFees\"").
+				Where("\"MunicipalityId\" = ? AND (\"Status\" NOT ILIKE 'Completed' AND \"Status\" NOT ILIKE 'Paid')", cityID).
+				Count(&stats.WastePendingBillsCount)
+		}
 	}
 
 	// 9. CCTV (Cameras count via CameraGroups JOIN, View sessions)

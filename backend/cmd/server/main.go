@@ -125,6 +125,14 @@ func main() {
 		auditGroup := api.Group("/audit-logs", middleware.AuthGuard(cfg.JWTSecret), middleware.RequirePermission(roleRepo, "AuditLog", "Read"))
 		auditGroup.Get("/", auditHandler.GetAuditLogs)
 
+		gisRepo := repository.NewGisRepository(db)
+		gisUseCase := usecase.NewGisUseCase(gisRepo)
+		gisHandler := handler.NewGisHandler(gisUseCase)
+
+		gisGroup := api.Group("/gis-map", middleware.AuthGuard(cfg.JWTSecret))
+		gisGroup.Get("/layers", gisHandler.GetLayerSummaries)
+		gisGroup.Get("/points", gisHandler.GetPoints)
+
 		assetHandler := handler.NewAssetHandler(cfg)
 		app.Get("/assets/:id", assetHandler.GetAsset)
 		api.Get("/assets/:id", assetHandler.GetAsset)
