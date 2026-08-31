@@ -9,6 +9,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { CityFormModal } from "@/components/cities/CityFormModal";
 import { SuccessModal } from "@/components/ui/SuccessModal";
+import { GisMapHub } from "@/components/map/GisMapHub";
 import { resolveImageUrl } from "@/lib/image";
 import { useCities, City, ModuleStatus, CityStatistics } from "@/hooks/useCities";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -359,6 +360,31 @@ export default function CityDetailPage({ params }: { params: Promise<{ id: strin
                       <ShieldCheck className="w-6 h-6" />
                     </div>
                   </div>
+                </div>
+
+                {/* Interactive City GIS Multi-Layer Map Section */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                        <span>แผนที่ข้อมูลเชิงพื้นที่ของเมือง</span>
+                        <span className="text-xs font-bold font-mono bg-indigo-50 text-indigo-700 border border-indigo-200 px-2.5 py-0.5 rounded-full">
+                          GIS Multi-Layer Map
+                        </span>
+                      </h2>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        แสดงพิกัดจริงทุกมิติข้อมูล ร้องทุกข์ กลุ่มเปราะบาง กล้องวงจรปิด และสัตว์เลี้ยงของ {nameTh}
+                      </p>
+                    </div>
+                  </div>
+
+                  <GisMapHub
+                    cityId={cityId}
+                    cityName={nameTh}
+                    hideHeader={true}
+                    hideCitySelector={true}
+                    heightClassName="h-[520px] min-h-[450px]"
+                  />
                 </div>
 
                 <div className="space-y-4">

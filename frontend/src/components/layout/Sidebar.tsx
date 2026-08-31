@@ -14,6 +14,7 @@ import {
   X,
   PanelLeftClose,
   PanelLeftOpen,
+  Map,
   LucideIcon
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
