@@ -109,6 +109,8 @@ export function CityMapAndTable() {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentTableCities = sortedCities.slice(startIndex, startIndex + itemsPerPage);
 
+  const [mapReady, setMapReady] = useState(false);
+
   // Initialize Real Leaflet Map on Client Side
   useEffect(() => {
     let isMounted = true;
@@ -139,12 +141,20 @@ export function CityMapAndTable() {
       ).addTo(map);
 
       mapInstanceRef.current = map;
+      setMapReady(true);
+
+      setTimeout(() => {
+        if (map && isMounted) {
+          map.invalidateSize();
+        }
+      }, 250);
     }
 
     initLeafletMap();
 
     return () => {
       isMounted = false;
+      setMapReady(false);
       if (hoverTimerRef.current) {
         clearTimeout(hoverTimerRef.current);
       }
@@ -155,9 +165,9 @@ export function CityMapAndTable() {
     };
   }, []);
 
-  // Sync Markers with Live cityLocationData
+  // Sync Markers with Live cityLocationData & Map Readiness
   useEffect(() => {
-    if (!mapInstanceRef.current || cityLocationData.length === 0) return;
+    if (!mapReady || !mapInstanceRef.current || cityLocationData.length === 0) return;
     const map = mapInstanceRef.current;
 
     Object.values(markersRef.current).forEach((marker: any) => {
@@ -217,8 +227,10 @@ export function CityMapAndTable() {
 
         markersRef.current[city.id] = marker;
       });
+
+      map.invalidateSize();
     });
-  }, [cityLocationData]);
+  }, [mapReady, cityLocationData]);
 
   // Sync Table Hover & Center Map on Selected/Hovered City
   useEffect(() => {

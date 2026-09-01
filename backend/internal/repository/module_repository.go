@@ -197,8 +197,11 @@ func (r *moduleRepository) GetCityStatistics(ctx context.Context, cityID uuid.UU
 	stats.ActiveUsers = stats.RegisteredUsers
 	r.db.WithContext(ctx).Table("\"AdminUsers\"").Where("\"MunicipalityId\" = ?", cityID).Count(&stats.AdminUsers)
 
-	// 3. Elderly & Bedridden
+	// 3. Elderly & Bedridden (3 Types of Elderly/Disabled)
 	r.db.WithContext(ctx).Table("\"ModuleElderlyAndDisabled\"").Where("\"MunicipalityId\" = ?", cityID).Count(&stats.ElderlyAndDisabledCount)
+	r.db.WithContext(ctx).Table("\"ModuleElderlyAndDisabled\"").Where("\"MunicipalityId\" = ? AND \"Type\" = 'Elderly'", cityID).Count(&stats.ElderlyCount)
+	r.db.WithContext(ctx).Table("\"ModuleElderlyAndDisabled\"").Where("\"MunicipalityId\" = ? AND \"Type\" = 'Disabled'", cityID).Count(&stats.DisabledCount)
+	r.db.WithContext(ctx).Table("\"ModuleElderlyAndDisabled\"").Where("\"MunicipalityId\" = ? AND \"Type\" = 'ElderlyAndDisabled'", cityID).Count(&stats.ElderlyAndDisabledBothCount)
 	r.db.WithContext(ctx).Table("\"ModuleBedriddenPatient\"").Where("\"MunicipalityId\" = ?", cityID).Count(&stats.BedriddenCount)
 
 	// 4. Complaints (Total & Completed)

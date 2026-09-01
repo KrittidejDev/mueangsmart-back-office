@@ -55,6 +55,9 @@ export interface CityStatistics {
   active_users: number;
   admin_users: number;
   elderly_and_disabled_count: number;
+  elderly_count?: number;
+  disabled_count?: number;
+  elderly_and_disabled_both_count?: number;
   bedridden_count: number;
   general_complaints_count: number;
   total_complaints_count: number;
