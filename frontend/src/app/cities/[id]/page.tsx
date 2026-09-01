@@ -396,8 +396,10 @@ export default function CityDetailPage({ params }: { params: Promise<{ id: strin
                         <h3 className="text-sm font-bold text-slate-900">ผู้สูงอายุและผู้พิการ</h3>
                         {renderStatusBadge(isModuleActive(["elderly", "ผู้สูงอายุ", "พิการ"]))}
                       </div>
-                      <div className="pt-1">
-                        <MetricRow label="รายชื่อทั้งหมด" value={stats?.elderly_and_disabled_count ?? 0} unit="คน" />
+                      <div className="pt-1 space-y-2">
+                        <MetricRow label="ผู้สูงอายุ" value={stats?.elderly_count ?? 0} unit="คน" />
+                        <MetricRow label="ผู้พิการ" value={stats?.disabled_count ?? 0} unit="คน" />
+                        <MetricRow label="ผู้สูงอายุและผู้พิการ (ทั้ง 2 ประเภท)" value={stats?.elderly_and_disabled_both_count ?? 0} unit="คน" />
                       </div>
                     </div>
 
